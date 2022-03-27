@@ -1,6 +1,7 @@
 # AI Template
- Template for MONAI projects
+ > Template for MONAI projects
  
+ ## Requirements
  pip install -U "monai[all]" pyyaml munch pandas
  
  
