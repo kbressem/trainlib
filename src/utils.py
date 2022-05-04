@@ -29,11 +29,11 @@ def load_config(fn: str='config.yaml'):
     return config
 
     
-def num_workers():
+def num_workers(config:dict):
     "Get max supported workers -2 for multiprocessing"
     import resource
     import multiprocessing
-    
+    import psutil
     # first check for max number of open files allowed on system
     soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
     n_workers=multiprocessing.cpu_count() - 2
@@ -50,7 +50,15 @@ def num_workers():
             "See https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past-4096-ubuntu"
             "for more details"
         )
-        return max_workers
+        n_workers = max_workers
+    
+    # now check if we will run into OOM errors because of too many workers
+    # In this project 2GB/Worker seems to be save 
+    
+    available_ram_in_gb = psutil.virtual_memory()[0]/1024**3
+    max_workers = int(available_ram_in_gb // 1)
+    if max_workers < n_workers: 
+        n_workers = max_workers
     
     return n_workers
 

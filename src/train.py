@@ -29,7 +29,7 @@ from .loss import get_loss
 from .transforms import get_val_post_transforms
 from .utils import USE_AMP
 
-def loss_logger(engine): 
+def loss_logger(engine: ignite.engine.Engine) -> None: 
     "write loss and lr of each iteration/epoch to file"
     iteration=engine.state.iteration
     epoch=engine.state.epoch
@@ -43,7 +43,7 @@ def loss_logger(engine):
     with open(log_file, 'a') as f: 
         f.write(f'{iteration},{epoch},{loss},{lr}\n')
         
-def metric_logger(engine): 
+def metric_logger(engine: ignite.engine.Engine) -> None: 
     "write `metrics` after each epoch to file"
     if engine.state.epoch > 1: # only key metric is calcualted in 1st epoch, needs fix
         metric_names=[k for k in engine.state.metrics.keys()]
@@ -55,7 +55,7 @@ def metric_logger(engine):
         with open(log_file, 'a') as f: 
             f.write(','.join(metrics) + '\n')
         
-def pred_logger(engine):
+def pred_logger(engine: ignite.engine.Engine) -> None:
     "save `pred` each time metric improves"
     epoch=engine.state.epoch
     root = os.path.join(engine.config.out_dir, 'preds')
@@ -152,7 +152,7 @@ def get_train_handlers(
     train_handlers=[
         ValidationHandler(
             validator=evaluator, 
-            interval=1, 
+            interval=config.validation_interval, 
             epoch_level=True
         ),
         StatsHandler(
@@ -184,7 +184,7 @@ def get_evaluator(
     network: torch.nn.Module, 
     val_data_loader: monai.data.dataloader.DataLoader, 
     val_post_transforms: monai.transforms.compose.Compose,
-    val_handlers: Union[Callable, List]=get_val_handlers
+    val_handlers: Union[Callable, List] = get_val_handlers
 ) -> monai.engines.SupervisedEvaluator: 
     
     """Create default evaluator for training of a segmentation model
@@ -212,8 +212,8 @@ def get_evaluator(
         network=network,
         inferer=monai.inferers.SlidingWindowInferer(
             roi_size=(96, 96, 96), 
-            sw_batch_size=4, 
-            overlap=0.5
+            sw_batch_size=16, 
+            overlap=0.25
         ),
         postprocessing=val_post_transforms,
         key_val_metric={
@@ -262,7 +262,6 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             network, 
             config=config
         )
-        
         self.evaluator=get_evaluator(
             config=config,
             device=config.device, 
@@ -270,13 +269,11 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             val_data_loader=val_loader, 
             val_post_transforms=val_post_transforms,
             val_handlers=val_handlers,
-
         )
         train_handlers=get_train_handlers(
             self.evaluator, 
             config=config
         )
-        
         super().__init__(
             device=config.device, 
             max_epochs=self.config.training.max_epochs, 

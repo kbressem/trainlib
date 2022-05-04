@@ -7,6 +7,7 @@ model_dir: models
 log_dir: logs
 seed: 42
 device: 'cuda:1'
+validation_interval: 2
 data:
   data_dir: /home/bressekk/Documents/prostate/prosdata158
   train_csv: /home/bressekk/Documents/prostate/prosdata158/prosdata_train.csv

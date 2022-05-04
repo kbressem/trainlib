@@ -6,7 +6,7 @@ import torch
 import shutil
 import numpy as np
 import pandas as pd
-from typing import Union
+from typing import Union, Tuple, Callable
 from monai.utils import first
 from functools import partial
 from collections import namedtuple
@@ -35,10 +35,10 @@ class DataLoader(MonaiDataLoader):
     "overwrite monai DataLoader for enhanced viewing capabilities"
     
     def show_batch(self, 
-                   image_key: str='image', 
-                   label_key: str='label', 
-                   image_transform=lambda x: x.squeeze().transpose(0,2).flip(-2), 
-                   label_transform=lambda x: x.squeeze().transpose(0,2).flip(-2)): 
+                   image_key: str = 'image', 
+                   label_key: str = 'label', 
+                   image_transform: Callable = lambda x: x.squeeze().transpose(0,2).flip(-2), 
+                   label_transform: Callable = lambda x: x.squeeze().transpose(0,2).flip(-2)): 
         """Args:
             image_key: dict key name for image to view
             label_key: dict kex name for corresponding label. Can be a tensor or str
@@ -64,7 +64,7 @@ def segmentation_dataloaders(config: dict,
                              train: bool = None,
                              valid: bool = None,
                              test: bool = None,
-                            ):
+                            ) -> Tuple[DataLoader]:
     """Create segmentation dataloaders
     Args:
         config: config file
@@ -104,39 +104,28 @@ def segmentation_dataloaders(config: dict,
     debug = config.debug
             
     ## ---------- data dicts ----------
-
-    # first a global data dict, containing only the filepath from image_cols and label_cols is created. For this,
-    # the dataframe is reduced to only the relevant columns. Then the rows are iterated, converting each row into an
-    # individual dict, as expected by monai
+    # first a global data dict, containing only the filepath from image_cols 
+    # and label_cols is created. For this, the dataframe is reduced to only 
+    # the relevant columns. Then the rows are iterated, converting each row 
+    # into an individual dict, as expected by monai
 
     if not isinstance(image_cols, (tuple, list)): image_cols = [image_cols]
     if not isinstance(label_cols, (tuple, list)): label_cols = [label_cols]
-
     train_df = pd.read_csv(train_csv)
     valid_df = pd.read_csv(valid_csv)
     test_df = pd.read_csv(test_csv)
+    
     if debug: 
         train_df = train_df.sample(25)
         valid_df = valid_df.sample(5)
     
-    train_df['split']='train'
-    valid_df['split']='valid'
-    test_df['split']='test'
-    whole_df = []
-    if train: whole_df += [train_df]
-    if valid: whole_df += [valid_df]
-    if test: whole_df += [test_df]
-    df = pd.concat(whole_df)
-    cols = image_cols + label_cols
-    for col in cols:
+    for col in image_cols + label_cols:
         # create absolute file name from relative fn in df and data_dir
-        df[col] = [os.path.join(data_dir, fn) for fn in df[col]]
-        if not os.path.exists(list(df[col])[0]):
-            raise FileNotFoundError(list(df[col])[0])
+        train_df[col] = data_dir + train_df[col]
+        valid_df[col] = data_dir + valid_df[col]
+        #test_df[col]  = data_dir + test_df[col]
 
-
-    data_dict = [dict(row[1]) for row in df[cols].iterrows()]
-    # data_dict is not the correct name, list_of_data_dicts would be more accurate, but also longer.
+    # Dataframes should now be converted to a dict
     # The data_dict looks like this:
     # [
     #  {'image_col_1': 'data_dir/path/to/image1',
@@ -150,21 +139,14 @@ def segmentation_dataloaders(config: dict,
 
     # now we create separate data dicts for train, valid and test data respectively
     assert train or test or valid, 'No dataset type is specified (train/valid or test)'
-
-    if test:
-        test_files = list(map(data_dict.__getitem__, *np.where(df.split == 'test')))
-
-    if valid:
-        val_files = list(map(data_dict.__getitem__, *np.where(df.split == 'valid')))
-
-    if train:
-        train_files = list(map(data_dict.__getitem__, *np.where(df.split == 'train')))
+    if test: test_files = test_df.to_dict('records')
+    if valid: val_files = valid_df.to_dict('records')
+    if train: train_files = train_df.to_dict('records')
 
     # transforms are specified in transforms.py and are just loaded here
     if train: train_transforms = transforms.get_train_transforms(config)
     if valid: val_transforms = transforms.get_val_transforms(config)
     if test: test_transforms = transforms.get_test_transforms(config)
-    
     
     ## ---------- construct dataloaders ----------
     Dataset=import_dataset(config)
@@ -177,7 +159,7 @@ def segmentation_dataloaders(config: dict,
         train_loader = DataLoader(
             train_ds,
             batch_size=batch_size,
-            num_workers=num_workers(),
+            num_workers=num_workers(config=config),
             shuffle=True
         )
         data_loaders.append(train_loader)
@@ -190,7 +172,7 @@ def segmentation_dataloaders(config: dict,
         val_loader = DataLoader(
             val_ds,
             batch_size=1,
-            num_workers=num_workers(),
+            num_workers=num_workers(config=config),
             shuffle=False
         )
         data_loaders.append(val_loader)
@@ -203,7 +185,7 @@ def segmentation_dataloaders(config: dict,
         test_loader = DataLoader(
             test_ds,
             batch_size=1,
-            num_workers=num_workers(),
+            num_workers=num_workers(config=config),
             shuffle=False
         )
         data_loaders.append(test_loader)

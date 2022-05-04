@@ -1,12 +1,14 @@
-__all__ = ['show_image', 'Reader', 'equal_number_of_slices', 'crop', 'resample', 'resize']
-
 import os
 import SimpleITK as sitk
 import numpy as np
+from typing import Union, List, Tuple
 from matplotlib import pyplot as plt
 from ipywidgets import interact, fixed
 
-def show_image(image, mask=None, mask_alpha=0.4, **kwargs):
+def show_image(image: sitk.Image, 
+               mask: sitk.Image = None, 
+               mask_alpha: float =0.4, 
+               **kwargs) -> None:
     "Display a DICOM series, optional with mask overlay"
     def _inner(image, slice_id):
         img_slice = sitk.GetArrayViewFromImage(image)[slice_id, :, :]
@@ -42,7 +44,8 @@ class Reader():
         "load an image file as `sitk.Image`"
         return sitk.ReadImage(fn)
 
-def equal_number_of_slices(fn_image, fn_mask):
+def equal_number_of_slices(fn_image: str, 
+                           fn_mask: str) -> bool:
     "compare number of slices in two images, returns bool"
     SeriesReader = sitk.ImageSeriesReader()
     dicom_names = SeriesReader.GetGDCMSeriesFileNames(str(fn_image))
@@ -50,10 +53,12 @@ def equal_number_of_slices(fn_image, fn_mask):
     n_slices_mask = sitk.ReadImage(fn_mask).GetDepth()
     return n_slices_image == n_slices_mask
 
-def _flatten(t):
+def _flatten(t: list) -> list:
     return [item for sublist in t for item in sublist]
 
-def crop(image, margin, interpolator=sitk.sitkLinear):
+def crop(image: stik.Image, 
+         margin: Union[List, Tuple], 
+         interpolator=sitk.sitkLinear) -> sitk.Image:
     """
     Crops a sitk.Image while retaining correct spacing. Negative margins will lead to zero padding
 
@@ -93,7 +98,9 @@ def crop(image, margin, interpolator=sitk.sitkLinear):
 
     return sitk.Resample(image, ref_image, interpolator=interpolator)
 
-def resample(image, spacing=None, interpolator = sitk.sitkLinear):
+def resample(image: sitk.Image, 
+             spacing: list = None,
+             interpolator = sitk.sitkLinear) -> sitk.Image:
     """resample an image to direction (1,0,0,
                                        0,1,0,
                                        0,0,1).
