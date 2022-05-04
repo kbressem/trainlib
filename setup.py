@@ -8,12 +8,12 @@ with open("requirements.txt", 'r') as f:
     requirements = f.read().split()
 
 setup(
-	name="ai-template", 
+	name="med3d", 
 	version="0.1", 
 	long_description=long_description,
-	description="template for AI projects", 
+	description="Basline code for AI projects", 
 	author="Keno Bressem", 
 	author_email="kenobressem@gmail.com", 
-	packages=['src'],
+	packages=['med3d'],
 
 )	

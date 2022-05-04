@@ -25,65 +25,24 @@ data:
 transforms:
   # apply multiple transforms to the input. Comment out if a transform should not be applied
   # all arguments for specific transformes are passed as keyword arguments directly to the function
-  prob: 0.175 # independent probability for each transform to be applied
+  prob: 0.1 # independent probability for each transform to be applied
   # base transforms
-  spacing: [0.5, 0.5, 0.5]
-  orientation: RAS
-  # imaging specific augmentations
-  rand_bias_field:
-    degree: 10
-    coeff_range: [0.0, 0.01]
-  rand_gaussian_smooth:
-    sigma_x: [0.25, 1.5]
-    sigma_y: [0.25, 1.5]
-    sigma_z: [0.25, 1.5]
-  rand_gibbs_nose:
-    alpha: [0.5, 1]
-  # affine transformation
-  rand_affine:
-    rotate_range: 5
-    shear_range: 0.5
-    translate_range: 25
-  rand_rotate90:
-    spatial_axes: [0,1]
-  rand_rotate:
-    range_x: 0.1
-    range_y: 0.1
-    range_z: 0.1
-  rand_elastic:
+  Spacingd:
+    pixdim: [3, 3, 3]
+    diagonal: True
+  Rand3DElasticd:
     sigma_range: [0.5,1.5]
     magnitude_range: [0.5, 1.5]
     rotate_range: 5
     shear_range: 0.5
     translate_range: 25
-  rand_zoom:
-    min: 0.9
-    max: 1.1
-  # resize and crop
-  # use either `rand_crop_pos_neg_label` or `rand_spatial_crop_samples`
-  # rand_crop_pos_neg_label:
-  # spatial_size: [96, 96, 96]
-  # pos: 2
-  # neg: 1
-  # num_samples: 4
-  rand_spatial_crop_samples:
-     roi_size: [96, 96, 96]
-     num_samples: 8
-  # intensitiy
-  gaussian_noise:
-    mean: 0.1
-    std: 0.25
-  shift_intensity:
-    offsets: 0.2
-  gaussian_sharpen:
-    sigma1_x: [0.5, 1.0]
-    sigma1_y: [0.5, 1.0]
-    sigma1_z: [0.5, 1.0]
-    sigma2_x: [0.5, 1.0]
-    sigma2_y: [0.5, 1.0]
-    sigma2_z: [0.5, 1.0]
-    alpha: [10.0, 30.0]
-  adjust_contrast:
+  RandCropByPosNegLabeld:
+    spatial_size: [64, 64, 64]
+    pos: 2
+    neg: 1
+    num_samples: 16
+    label_key: label
+  RandAdjustContrastd:
     gamma: 2.0
 model:
   # create a standard UNet with monai (for quick experiments)
