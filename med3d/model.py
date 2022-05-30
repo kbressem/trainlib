@@ -1,8 +1,9 @@
 # create a standard UNet
-import torch
+
 from monai.networks.nets import UNet
 
-def get_model(config: dict) -> torch.nn.Module:
+
+def get_model(config: dict):
     return UNet(
         spatial_dims=config.ndim,
         in_channels=len(config.data.image_cols),
@@ -13,4 +14,4 @@ def get_model(config: dict) -> torch.nn.Module:
         act=config.model.act,
         norm=config.model.norm,
         dropout=config.model.dropout,
-            )
+    )

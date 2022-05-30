@@ -1,13 +1,11 @@
-import torch
 import monai
-from .utils import load_config
+import torch
 
 
-def get_optimizer(model: torch.nn.Module, 
-                  config: dict): 
+def get_optimizer(model: torch.nn.Module, config: dict):
     """Create an optimizer of `type` with specific keyword arguments from config.
-    Example: 
-        
+    Example:
+
         config.optimizer
         >>> {'Novograd': {'lr': 0.001, 'weight_decay': 0.01}}
 
@@ -21,17 +19,15 @@ def get_optimizer(model: torch.nn.Module,
         >>>     lr: 0.0001
         >>>     weight_decay: 0.001
         >>> )
-    
+
     """
     optimizer_type = list(config.optimizer.keys())[0]
     opt_config = config.optimizer[optimizer_type]
-    if hasattr(torch.optim, optimizer_type): 
+    if hasattr(torch.optim, optimizer_type):
         optimizer_fun = getattr(torch.optim, optimizer_type)
-    elif hasattr(monai.optimizers, optimizer_type): 
+    elif hasattr(monai.optimizers, optimizer_type):
         optimizer_fun = getattr(monai.optimizers, optimizer_type)
-    else: 
-        raise ValueError(f'Optimizer {optimizer_type} not found')
+    else:
+        raise ValueError(f"Optimizer {optimizer_type} not found")
     optimizer = optimizer_fun(model.parameters(), **opt_config)
     return optimizer
-
-
