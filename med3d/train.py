@@ -1,7 +1,9 @@
 import os
 import shutil
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Tuple
+from pathlib import Path
 
+import numpy as np
 import ignite
 import monai
 import torch
@@ -19,6 +21,8 @@ from monai.handlers import (
     ValidationHandler,
     from_engine,
 )
+from monai.transforms import SaveImage, Resize
+from monai.utils import convert_to_numpy
 
 from .data import segmentation_dataloaders
 from .loss import get_loss
@@ -387,8 +391,8 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             torch.optim.lr_scheduler.OneCycleLR(
                 optimizer=self.optimizer,
                 max_lr=self.optimizer.param_groups[0]["lr"],
-                steps_per_epoch=self.state.epoch_length,
                 epochs=self.state.max_epochs,
+                steps_per_epoch=self.state.epoch_length,
             ),
             epoch_level=False,
             name="FitOneCycle",
@@ -427,10 +431,60 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self.schedulers += ["ReduceLROnPlateau"]
 
     def evaluate(self, checkpoint=None, dataloader=None):
-        "Run evaluation with best saved checkpoint"
-        self.load_checkpoint(checkpoint)
+        "Run evaluation, optional on new data with saved checkpoint"
+        if checkpoint:
+            self.load_checkpoint(checkpoint)
         if dataloader:
             self.evaluator.set_data(dataloader)
             self.evaluator.state.epoch_length = len(dataloader)
         self.evaluator.run()
         print(f"metrics saved to {self.config.out_dir}")
+
+    def predict(self, file: Union[str, List[str]], checkpoint=None, roi_size: Tuple[int, int, int] = (96, 96, 96), sw_batch_size=16, overlap=0.75, return_input = True):
+        "Predict on single image or sequence from a single examination"
+        if checkpoint:
+            self.load_checkpoint(checkpoint)
+        dataloader = segmentation_dataloaders(self.config, train=False, valid=False, test=True)
+        if isinstance(file, str):
+            file = [file]
+        images = {col_name: f for col_name, f in zip(self.config.data.image_cols, file)}
+        dataloader.dataset.data = [images]
+        inferer = monai.inferers.SlidingWindowInferer(
+            roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap
+        )
+        self.network.eval()
+        with torch.no_grad():
+            for batch in dataloader:
+                data = batch["image"].to(self.config.device)
+                pred = inferer(inputs=data, network=self.network)
+        if return_input:
+            batch["pred"] = pred
+            return batch
+        return pred
+
+    def save_prediction(self, data_dict: dict, argmax=True, output_postfix="pred"):
+        import torch.nn.functional as F
+        meta_dict = data_dict["image_meta_dict"].copy()
+        fn = meta_dict["filename_or_obj"]
+        if isinstance(fn, list): fn = fn[0]
+        folder = Path(fn).parent
+        for k in meta_dict:
+            try:
+                meta_dict[k] = convert_to_numpy(meta_dict[k]).squeeze()
+            except Exception:
+                pass
+        prediction = data_dict["pred"].cpu()
+        spatial_shape = meta_dict["spatial_shape"].tolist()
+        prediction = F.interpolate(prediction, spatial_shape, mode="nearest").squeeze()        
+        if argmax:
+            prediction = prediction.argmax(0)
+        writer = SaveImage( # TODO: Report issue with rim to MONAI
+            output_postfix=output_postfix,
+            output_dir=folder,
+            mode = "nearest",
+            padding_mode = "zeros",
+            resample=False, # Resampling produces rim around kidney
+            channel_dim = None,
+            separate_folder=False,
+        )
+        prediction = writer(prediction, meta_dict)

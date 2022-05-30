@@ -76,6 +76,8 @@ class BasicViewer:
         description: description of the whole image
         figsize: size of image, passed as plotting argument
         cmap: colormap for the image
+        mask_alpha: set transparency of segmentation mask, if one is provided
+        background_threshold: Values below this are shown as fully transparent
     Returns:
         Instance of BasicViewer
     """
@@ -88,6 +90,8 @@ class BasicViewer:
         description: str = None,
         figsize=(3, 3),
         cmap: str = "bone",
+        mask_alpha = 0.25,
+        background_threshold = 0.05,
     ):
         x = np.squeeze(convert_to_numpy(x))
         assert x.ndim == 3, f"x.ndim needs to be equal to but is {x.ndim}"
@@ -97,6 +101,8 @@ class BasicViewer:
                 x.shape == y.shape
             ), f"Shapes of x {x.shape} and y {y.shape} do not match"
             self.with_mask = True
+        else:
+            self.with_mask = False
         self.x = x
         self.y = y
         self.prediction = prediction
@@ -104,13 +110,18 @@ class BasicViewer:
         self.figsize = figsize
         self.cmap = cmap
         self.slice_range = (1, len(x))  # len(x) == im.shape[0]
+        self.mask_alpha = mask_alpha
+        self.background_threshold = background_threshold
 
     def _plot_slice(self, im_slice, with_mask, px_range):
         "Plot slice of image"
         fig, ax = plt.subplots(1, 1, figsize=self.figsize)
-        ax.imshow(self.x[im_slice - 1, :, :].clip(*px_range), cmap=self.cmap)
-        if isinstance(self.y, (torch.Tensor)) and with_mask:
-            ax.imshow(self.y[im_slice - 1, :, :], cmap="jet", alpha=0.25)
+        ax.imshow(self.x[im_slice - 1, :, :].clip(*px_range), cmap=self.cmap, vmin=px_range[0], vmax=px_range[1])
+        if with_mask and self.y is not None:
+            image_slice = self.y[im_slice - 1, :, :]
+            alpha = np.zeros(image_slice.shape)
+            alpha[image_slice > self.background_threshold] = self.mask_alpha
+            ax.imshow(image_slice, cmap="jet", alpha=alpha, vmin=self.y.min(), vmax=self.y.max())
         plt.axis("off")
         ax.set_xticks([])
         ax.set_yticks([])
@@ -149,9 +160,9 @@ class BasicViewer:
             slider_max=self.x.max(),
             value=[self.x.min(), self.x.max()],
             slider_type="FloatRangeSlider"
-            if isinstance(self.x, np.floating)
+            if issubclass(self.x.dtype.type, np.floating)
             else "IntRangeSlider",
-            step=0.01 if isinstance(self.x, np.floating) else 1,
+            step=0.01 if issubclass(self.x.dtype.type, np.floating) else 1,
             readout=True,
         )
 
@@ -172,7 +183,7 @@ class BasicViewer:
         items.append(y_label)
         items.append(range_slider)
         items.append(image_output)
-        if isinstance(self.y, torch.Tensor):
+        if self.y is not None:
             slice_slider = widgets.HBox([slice_slider, toggle_mask_button])
         items.append(slice_slider)
 
@@ -197,6 +208,8 @@ class BasicViewer:
         self._generate_views()
         plt.style.use("default")
         display(self.box)
+
+
 
 
 class DicomExplorer(BasicViewer):
@@ -275,9 +288,9 @@ class DicomExplorer(BasicViewer):
             value=[self.x.min(), self.x.max()],
             continuous_update=False,
             slider_type="FloatRangeSlider"
-            if isinstance(self.x, np.floating)
+            if issubclass(self.x.dtype.type, np.floating)
             else "IntRangeSlider",
-            step=0.01 if isinstance(self.x, np.floating) else 1,
+            step=0.01 if issubclass(self.x.dtype.type, np.floating) else 1,
         )
 
         image_output = widgets.interactive_output(
@@ -292,7 +305,7 @@ class DicomExplorer(BasicViewer):
         image_output.layout.height = f"{self.figsize[0]/1.2}in"  # suppress flickering
         image_output.layout.width = f"{self.figsize[1]/1.2}in"  # suppress flickering
 
-        if isinstance(self.y, torch.Tensor):
+        if self.y is not None:
             slice_slider = widgets.HBox([slice_slider, toggle_mask_button])
 
         hist_output = widgets.interactive_output(

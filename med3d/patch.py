@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Dict, Hashable, List, Mapping, Optional, Sequence, Tuple, Union
 
 from monai import transforms
+from monai.transforms import EnsureChannelFirst
 from monai.config.type_definitions import KeysCollection, NdarrayOrTensor
 from monai.utils import ImageMetaKey as Key
 from monai.utils import (
@@ -235,3 +236,46 @@ class RandCropByPosNegLabeld(transforms.RandCropByPosNegLabeld):
                 results[i][meta_key][Key.PATCH_INDEX] = i  # type: ignore
 
         return results
+
+
+class EnsureChannelFirstd(transforms.MapTransform):
+    """
+    Dictionary-based wrapper of :py:class:`monai.transforms.EnsureChannelFirst`.
+    """
+
+    backend = EnsureChannelFirst.backend
+
+    def __init__(
+        self,
+        keys: KeysCollection,
+        meta_keys: Optional[KeysCollection] = None,
+        meta_key_postfix: str = DEFAULT_POST_FIX,
+        strict_check: bool = True,
+        allow_missing_keys: bool = False,
+    ) -> None:
+        """
+        Args:
+            keys: keys of the corresponding items to be transformed.
+                See also: :py:class:`monai.transforms.compose.MapTransform`
+            meta_keys: explicitly indicate the key of the corresponding meta data dictionary.
+                for example, for data with key `image`, the metadata by default is in `image_meta_dict`.
+                the meta data is a dictionary object which contains: filename, original_shape, etc.
+                it can be a sequence of string, map to the `keys`.
+                if None, will try to construct meta_keys by `key_{meta_key_postfix}`.
+            meta_key_postfix: if meta_keys is None and `key_{postfix}` was used to store the metadata in `LoadImaged`.
+                So need the key to extract metadata for channel dim information, default is `meta_dict`.
+                For example, for data with key `image`, metadata by default is in `image_meta_dict`.
+            strict_check: whether to raise an error when the meta information is insufficient.
+
+        """
+        super().__init__(keys, allow_missing_keys)
+        self.adjuster = EnsureChannelFirst(strict_check=strict_check)
+        self.meta_keys = ensure_tuple_rep(meta_keys, len(self.keys))
+        self.meta_key_postfix = ensure_tuple_rep(meta_key_postfix, len(self.keys))
+
+    def __call__(self, data) -> Dict[Hashable, NdarrayOrTensor]:
+        d = dict(data)
+        for key, meta_key, meta_key_postfix in zip(self.keys, self.meta_keys, self.meta_key_postfix):
+            if key in d:
+                d[key] = self.adjuster(d[key], d[meta_key or f"{key}_{meta_key_postfix}"])
+        return d

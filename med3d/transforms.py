@@ -4,7 +4,6 @@ from monai.transforms import (
     Compose,
     ConcatItemsd,
     CropForegroundd,
-    EnsureChannelFirstd,
     EnsureTyped,
     LoadImaged,
     MapLabelValued,
@@ -15,6 +14,7 @@ from monai.transforms import (
 from monai.utils.enums import CommonKeys
 
 from . import patch
+from .patch import EnsureChannelFirstd
 
 # images should be interploated with `bilinear` but masks with `nearest`
 # ---------- base transforms ----------
@@ -23,21 +23,23 @@ from . import patch
 
 def get_base_transforms(config: dict, minv: int = 0, maxv: int = 1) -> list:
     tfms = [
-        LoadImaged(keys=config.data.image_cols + config.data.label_cols),
-        EnsureChannelFirstd(keys=config.data.image_cols + config.data.label_cols),
+        LoadImaged(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True),
+        EnsureChannelFirstd(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True),
         Spacingd(
             keys=config.data.image_cols + config.data.label_cols,
             mode=config.transforms.mode,
             pixdim=config.transforms.spacing,
+            allow_missing_keys=True
         ),
-        ScaleIntensityd(keys=config.data.image_cols, minv=minv, maxv=maxv),
+        ScaleIntensityd(keys=config.data.image_cols, minv=minv, maxv=maxv, allow_missing_keys=True),
         MapLabelValued(
             keys=config.data.label_cols,
             # 1. kidney, 5. tumor, 2-3 and 6. rest (e.g. cysts)
             orig_labels=[1, 2, 3, 4, 5, 6],
             target_labels=[1, 2, 2, 2, 2, 2],
+            allow_missing_keys=True
         ),
-        NormalizeIntensityd(keys=config.data.image_cols),
+        NormalizeIntensityd(keys=config.data.image_cols, allow_missing_keys=True),
     ]
     return tfms
 
@@ -131,10 +133,10 @@ def get_val_transforms(config: dict):
 
 def get_test_transforms(config: dict):
     tfms = get_base_transforms(config=config)
-    tfms += [EnsureTyped(keys=config.data.image_cols + config.data.label_cols)]
+    tfms += [EnsureTyped(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True)]
     tfms += [
-        ConcatItemsd(keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0),
-        ConcatItemsd(keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0),
+        ConcatItemsd(keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0, allow_missing_keys=True),
+        ConcatItemsd(keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0, allow_missing_keys=True),
     ]
 
     return Compose(tfms)
