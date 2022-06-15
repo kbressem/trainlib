@@ -25,9 +25,9 @@ def load_config(fn: str = "config.yaml"):
     if not isinstance(config.data.label_cols, (tuple, list)):
         config.data.label_cols = [config.data.label_cols]
 
-    config.transforms.mode = ("bilinear",) * len(config.data.image_cols) + (
-        "nearest",
-    ) * len(config.data.label_cols)
+    config.transforms.mode = ("bilinear",) * len(config.data.image_cols) + ("nearest",) * len(
+        config.data.label_cols
+    )
     return config
 
 
@@ -51,8 +51,8 @@ def num_workers(config: dict):
             f"\t soft_limit: {soft_limit}\n"
             f"\t hard_limit: {hard_limit}\n"
             "try increasing the limits to at least {256*n_workers}."
-            "See https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past-4096-ubuntu"
-            "for more details"
+            "See https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past"
+            "-4096-ubuntu for more details"
         )
         n_workers = max_workers
 

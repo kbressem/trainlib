@@ -3,10 +3,9 @@ from monai.transforms import (
     AsDiscreted,
     Compose,
     ConcatItemsd,
-    CropForegroundd,
     EnsureTyped,
+    Lambdad,
     LoadImaged,
-    MapLabelValued,
     NormalizeIntensityd,
     ScaleIntensityd,
     Spacingd,
@@ -24,22 +23,15 @@ from .patch import EnsureChannelFirstd
 def get_base_transforms(config: dict, minv: int = 0, maxv: int = 1) -> list:
     tfms = [
         LoadImaged(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True),
-        EnsureChannelFirstd(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True),
+        EnsureChannelFirstd(
+            keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True
+        ),
         Spacingd(
             keys=config.data.image_cols + config.data.label_cols,
             mode=config.transforms.mode,
             pixdim=config.transforms.spacing,
-            allow_missing_keys=True
+            allow_missing_keys=True,
         ),
-        ScaleIntensityd(keys=config.data.image_cols, minv=minv, maxv=maxv, allow_missing_keys=True),
-        MapLabelValued(
-            keys=config.data.label_cols,
-            # 1. kidney, 5. tumor, 2-3 and 6. rest (e.g. cysts)
-            orig_labels=[1, 2, 3, 4, 5, 6],
-            target_labels=[1, 2, 2, 2, 2, 2],
-            allow_missing_keys=True
-        ),
-        NormalizeIntensityd(keys=config.data.image_cols, allow_missing_keys=True),
     ]
     return tfms
 
@@ -53,12 +45,11 @@ def get_transform(tfm_name: str, config: dict):
         transform = getattr(patch, tfm_name)
     else:
         transform = getattr(monai.transforms, tfm_name)
-        assert (
-            "dictionary" in transform.__module__
-        ), f"{tfm_name} is not a dictionary transform"
+        assert "dictionary" in transform.__module__, f"{tfm_name} is not a dictionary transform"
     kwargs = config.transforms[tfm_name]
-    kwargs["keys"] = config.data.image_cols + config.data.label_cols
     allowed_kwargs = transform.__init__.__code__.co_varnames
+    if "keys" not in kwargs.keys():
+        kwargs["keys"] = config.data.image_cols + config.data.label_cols
     if "mode" in allowed_kwargs and "mode" not in kwargs.keys():
         kwargs["mode"] = config.transforms.mode
     if "prob" in allowed_kwargs and "prob" not in kwargs.keys():
@@ -85,14 +76,6 @@ def get_train_transforms(config: dict):
     not_a_transform = ["prob", "spacing", "orientation", "mode"]
     tfm_names = [tn for tn in config.transforms if tn not in not_a_transform]
     train_tfms = [get_transform(tn, config) for tn in tfm_names]
-
-    intensity_tfms = [tfm for tfm in train_tfms if "intensity" in tfm.__module__]
-    spatial_tfms = [tfm for tfm in train_tfms if "spatial" in tfm.__module__]
-    croppad_tfms = [tfm for tfm in train_tfms if "croppad" in tfm.__module__]
-
-    tfms += spatial_tfms
-    tfms += croppad_tfms
-    tfms += intensity_tfms
     tfms += [tfm for tfm in train_tfms if tfm not in tfms]  # add rest
 
     # Concat mutlisequence data to single Tensors on the ChannelDim
@@ -100,6 +83,8 @@ def get_train_transforms(config: dict):
     # for more compatibility with monai.engines
 
     tfms += [
+        ScaleIntensityd(keys=config.data.image_cols, minv=0, maxv=1, allow_missing_keys=True),
+        NormalizeIntensityd(keys=config.data.image_cols, allow_missing_keys=True),
         ConcatItemsd(keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0),
         ConcatItemsd(keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0),
     ]
@@ -114,15 +99,10 @@ def get_val_transforms(config: dict):
     tfms = get_base_transforms(config=config)
     tfms += [EnsureTyped(keys=config.data.image_cols + config.data.label_cols)]
     tfms += [
+        ScaleIntensityd(keys=config.data.image_cols, minv=0, maxv=1, allow_missing_keys=True),
+        NormalizeIntensityd(keys=config.data.image_cols, allow_missing_keys=True),
         ConcatItemsd(keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0),
         ConcatItemsd(keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0),
-    ]
-    tfms += [
-        CropForegroundd(
-            keys=config.data.image_cols + config.data.label_cols,
-            source_key=config.data.label_cols[0],
-            margin=64,
-        )
     ]
     return Compose(tfms)
 
@@ -133,10 +113,18 @@ def get_val_transforms(config: dict):
 
 def get_test_transforms(config: dict):
     tfms = get_base_transforms(config=config)
-    tfms += [EnsureTyped(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True)]
     tfms += [
-        ConcatItemsd(keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0, allow_missing_keys=True),
-        ConcatItemsd(keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0, allow_missing_keys=True),
+        EnsureTyped(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True)
+    ]
+    tfms += [
+        ScaleIntensityd(keys=config.data.image_cols, minv=0, maxv=1, allow_missing_keys=True),
+        NormalizeIntensityd(keys=config.data.image_cols, allow_missing_keys=True),
+        ConcatItemsd(
+            keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0, allow_missing_keys=True
+        ),
+        ConcatItemsd(
+            keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0, allow_missing_keys=True
+        ),
     ]
 
     return Compose(tfms)
@@ -151,6 +139,7 @@ def get_val_post_transforms(config: dict):
             to_onehot=config.model.out_channels,
             num_classes=config.model.out_channels,
         ),
+        Lambdad(keys=CommonKeys.LABEL, func=lambda x: x[0:1]),
         AsDiscreted(
             keys=CommonKeys.LABEL,
             to_onehot=config.model.out_channels,

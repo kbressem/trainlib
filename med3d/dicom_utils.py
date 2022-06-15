@@ -75,8 +75,8 @@ def crop(image, margin, interpolator=sitk.sitkLinear):
 
     Args:
         image: a sitk.Image
-        margin: margins to crop. Single integer or float (percentage crop), lists of int/float or nested
-            lists are supported.
+        margin: margins to crop. Single integer or float (percentage crop), lists of int/float
+            or nested lists are supported.
     """
     if isinstance(margin, (list, tuple)):
         assert len(margin) == 3, "expected margin to be of length 3"
@@ -120,12 +120,8 @@ def resample(image, spacing=None, interpolator=sitk.sitkLinear):
     """
     # define the Euler Transformation for Image Rotation
     euler3d = sitk.Euler3DTransform()  # define transform for rotation of the image
-    image_center = (
-        np.array(image.GetSize()) / 2.0
-    )  # set rotation center to image center
-    image_center_as_sitk_point = image.TransformContinuousIndexToPhysicalPoint(
-        image_center
-    )
+    image_center = np.array(image.GetSize()) / 2.0  # set rotation center to image center
+    image_center_as_sitk_point = image.TransformContinuousIndexToPhysicalPoint(image_center)
     euler3d.SetCenter(image_center_as_sitk_point)
 
     # get index of volume edges
@@ -141,13 +137,9 @@ def resample(image, spacing=None, interpolator=sitk.sitkLinear):
         (w, h, d),
     ]
     # transform edges to physical points in the global coordinate system
-    extreme_points = [
-        image.TransformIndexToPhysicalPoint(pnt) for pnt in extreme_points
-    ]
+    extreme_points = [image.TransformIndexToPhysicalPoint(pnt) for pnt in extreme_points]
     inv_euler3d = euler3d.GetInverse()
-    extreme_points_transformed = [
-        inv_euler3d.TransformPoint(pnt) for pnt in extreme_points
-    ]
+    extreme_points_transformed = [inv_euler3d.TransformPoint(pnt) for pnt in extreme_points]
 
     # get new min and max coordinates of image edges
     min_x = min(extreme_points_transformed)[0]
@@ -193,8 +185,7 @@ def resize(im, new_size=(128, 128, 64), interpolator=sitk.sitkLinear):
 
     # calculate new spacing
     new_spacing = [
-        spc * (old_sz / new_sz)
-        for spc, old_sz, new_sz in zip(old_spacing, old_size, new_size)
+        spc * (old_sz / new_sz) for spc, old_sz, new_sz in zip(old_spacing, old_size, new_size)
     ]
 
     # create reference plane to resample image

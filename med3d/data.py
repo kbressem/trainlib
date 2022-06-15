@@ -2,6 +2,7 @@
 
 # ---------- imports ----------
 import os
+import shutil
 from collections import namedtuple
 from functools import partial
 
@@ -18,12 +19,12 @@ def import_dataset(config: dict):
     if config.data.dataset_type == "persistent":
         from monai.data import PersistentDataset
 
-        if not os.path.exists(config.data.cache_dir):
-            # shutil.rmtree(config.data.cache_dir) # rm previous cache DS
-            os.makedirs(config.data.cache_dir, exist_ok=True)
-        Dataset = partial( # noqa N806
-            PersistentDataset, cache_dir=config.data.cache_dir
-        )  # noqa N806
+        if os.path.exists(config.data.cache_dir):
+            shutil.rmtree(config.data.cache_dir)  # rm previous cache DS
+        os.makedirs(config.data.cache_dir, exist_ok=True)
+        Dataset = partial(  # noqa N806
+            PersistentDataset, cache_dir=config.data.cache_dir  # noqa N806
+        )
     elif config.data.dataset_type == "cache":
         from monai.data import CacheDataset  # noqa F401
 
@@ -42,6 +43,7 @@ class DataLoader(MonaiDataLoader):
         label_key: str = "label",
         image_transform=lambda x: x.squeeze().transpose(0, 2).flip(-2),
         label_transform=lambda x: x.squeeze().transpose(0, 2).flip(-2),
+        **kwargs,
     ):
         """Args:
         image_key: dict key name for image to view
@@ -55,11 +57,23 @@ class DataLoader(MonaiDataLoader):
         from .viewer import ListViewer
 
         batch = first(self)
-        image = torch.unbind(batch[image_key], 0)
-        label = torch.unbind(batch[label_key], 0)
+        image = batch[image_key]
+        label = batch[label_key]
+        b, c, w, h, d = image.shape
+        if label.shape[1] == 1:
+            label = torch.stack([label] * c, 1)
+        elif label.shape[1] == c:
+            pass
+        else:
+            raise NotImplementedError(
+                f"`show_batch` not implemented for label with {label.shape[0]}"
+                f" channels if image has {c} channels"
+            )
+        image = torch.unbind(image.reshape(b * c, w, h, d), 0)
+        label = torch.unbind(label.reshape(b * c, w, h, d), 0)
 
         ListViewer(
-            [image_transform(im) for im in image], [label_transform(im) for im in label]
+            [image_transform(im) for im in image], [label_transform(im) for im in label], **kwargs
         ).show()
 
 
@@ -192,8 +206,8 @@ def segmentation_dataloaders(
         )
         data_loaders.append(test_loader)
 
-    # if only one dataloader is constructed, return only this dataloader else return a named tuple with dataloaders,
-    # so it is clear which DataLoader is train/valid or test
+    # if only one dataloader is constructed, return only this dataloader else return a named tuple
+    # with dataloaders, so it is clear which DataLoader is train/valid or test
 
     if len(data_loaders) == 1:
         return data_loaders[0]

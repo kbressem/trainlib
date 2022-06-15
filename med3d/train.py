@@ -1,9 +1,8 @@
 import os
 import shutil
-from typing import Callable, List, Union, Tuple
 from pathlib import Path
+from typing import Callable, List, Tuple, Union
 
-import numpy as np
 import ignite
 import monai
 import torch
@@ -21,7 +20,7 @@ from monai.handlers import (
     ValidationHandler,
     from_engine,
 )
-from monai.transforms import SaveImage, Resize
+from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
 from .data import segmentation_dataloaders
@@ -70,9 +69,7 @@ def pred_logger(engine):
         torch.save(engine.state.output[0]["image"], os.path.join(root, "image.pt"))
 
     if epoch == engine.state.best_metric_epoch:
-        torch.save(
-            engine.state.output[0]["pred"], os.path.join(root, f"pred_epoch_{epoch}.pt")
-        )
+        torch.save(engine.state.output[0]["pred"], os.path.join(root, f"pred_epoch_{epoch}.pt"))
 
 
 def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
@@ -115,7 +112,7 @@ def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
         ),
         CheckpointSaver(
             save_dir=config.model_dir,
-            save_dict={f"network_{config.run_id}": network},
+            save_dict={f"network_{config.run_id.split('/')[-1]}": network},
             save_key_metric=True,
         ),
     ]
@@ -123,9 +120,7 @@ def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
     return val_handlers
 
 
-def get_train_handlers(
-    evaluator: monai.engines.SupervisedEvaluator, config: dict
-) -> list:
+def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: dict) -> list:
     """Create default handlers for model training
     Args:
         evaluator: an engine of type `monai.engines.SupervisedEvaluator` for evaluations
@@ -144,9 +139,7 @@ def get_train_handlers(
 
     train_handlers = [
         ValidationHandler(validator=evaluator, interval=1, epoch_level=True),
-        StatsHandler(
-            tag_name="train_loss", output_transform=from_engine(["loss"], first=True)
-        ),
+        StatsHandler(tag_name="train_loss", output_transform=from_engine(["loss"], first=True)),
         StatsHandler(tag_name="loss_logger", iteration_print_logger=loss_logger),
         TensorBoardStatsHandler(
             log_dir=config.log_dir,
@@ -194,18 +187,19 @@ def get_evaluator(
         inferer=monai.inferers.SlidingWindowInferer(
             roi_size=(96, 96, 96), sw_batch_size=2, overlap=0.25
         ),
-        postprocessing=val_post_transforms,
+        # postprocessing=val_post_transforms,
         key_val_metric={
             "val_mean_dice": MeanDice(
                 include_background=False,
-                output_transform=from_engine(["pred", "label"]),
+                output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
             )
         },
         val_handlers=val_handlers,
         # if no FP16 support in GPU or PyTorch version < 1.6, will not enable AMP evaluation
-        amp=USE_AMP and config.device != "cpu",
+        amp=USE_AMP and config.device != torch.device("cpu"),
     )
     evaluator.config = config
+
     return evaluator
 
 
@@ -250,7 +244,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             loss_function=loss_fn,
             inferer=monai.inferers.SimpleInferer(),
             train_handlers=train_handlers,
-            amp=USE_AMP and config.device != "cpu",
+            amp=USE_AMP and config.device != torch.device("cpu"),
         )
 
         if early_stopping:
@@ -264,7 +258,8 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             getattr(monai.handlers, m)(
                 include_background=False,
                 reduction="mean",
-                output_transform=from_engine(["pred", "label"]),
+                output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+                # from_engine(["pred", "label"]),
             ).attach(self.evaluator, m)
 
         self._add_metrics_logger()
@@ -283,6 +278,10 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         # delete old log_dir
         if os.path.exists(self.config.log_dir):
             shutil.rmtree(self.config.log_dir)
+
+        # copy entire library, making everything 100% reproducible
+        dir_name = os.path.dirname(os.path.abspath(__file__))
+        shutil.copytree(dir_name, os.path.join(self.config.run_id, "lib"))
 
     def _add_early_stopping(self) -> None:
         early_stopping = EarlyStopHandler(
@@ -323,9 +322,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             loss_fn=self.loss_function,
             output_transform=lambda output: (
                 output[0]["pred"].unsqueeze(0),  # add batch dim
-                output[0]["label"]
-                .argmax(0, keepdim=True)
-                .unsqueeze(0),  # reverse one-hot, add batch dim
+                output[0]["label"].unsqueeze(0),  # add batch dim
             ),
         )
         eval_loss_handler.attach(self.evaluator, "eval_loss")
@@ -342,7 +339,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             # get name of last checkpoint
             checkpoint = os.path.join(
                 self.config.model_dir,
-                f"network_{self.config.run_id}_key_metric={self.evaluator.state.best_metric:.4f}.pt",
+                f"network_{self.config.run_id.split('/')[-1]}_key_metric={self.evaluator.state.best_metric:.4f}.pt",  # noqa E501
             )
         self.network.load_state_dict(torch.load(checkpoint))
 
@@ -355,7 +352,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             checkpoints = [
                 os.path.join(self.config.model_dir, checkpoint_name)
                 for checkpoint_name in os.listdir(self.config.model_dir)
-                if self.config.run_id in checkpoint_name
+                if self.config.run_id.split("/")[-1] in checkpoint_name
             ]
             try:
                 checkpoint = sorted(checkpoints)[-1]
@@ -371,9 +368,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self.loss = {
             "iter": [_iter for _iter, _ in self.metric_logger.loss],
             "loss": [_loss for _, _loss in self.metric_logger.loss],
-            "epoch": [
-                _iter // self.state.epoch_length for _iter, _ in self.metric_logger.loss
-            ],
+            "epoch": [_iter // self.state.epoch_length for _iter, _ in self.metric_logger.loss],
         }
 
         self.metrics = {
@@ -409,9 +404,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         verbose=True,
     ) -> None:
         "Reduce learning rate by `factor` every `patience` epochs if kex_metric does not improve"
-        assert (
-            "ReduceLROnPlateau" not in self.schedulers
-        ), "ReduceLROnPlateau already added"
+        assert "ReduceLROnPlateau" not in self.schedulers, "ReduceLROnPlateau already added"
         reduce_lr_on_plateau = monai.handlers.LrScheduleHandler(
             torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer=self.optimizer,
@@ -423,9 +416,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             print_lr=True,
             name="ReduceLROnPlateau",
             epoch_level=True,
-            step_transform=lambda engine: engine.state.metrics[
-                engine.state.key_metric_name
-            ],
+            step_transform=lambda engine: engine.state.metrics[engine.state.key_metric_name],
         )
         reduce_lr_on_plateau.attach(self.evaluator)
         self.schedulers += ["ReduceLROnPlateau"]
@@ -440,7 +431,15 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self.evaluator.run()
         print(f"metrics saved to {self.config.out_dir}")
 
-    def predict(self, file: Union[str, List[str]], checkpoint=None, roi_size: Tuple[int, int, int] = (96, 96, 96), sw_batch_size=16, overlap=0.75, return_input = True):
+    def predict(
+        self,
+        file: Union[str, List[str]],
+        checkpoint=None,
+        roi_size: Tuple[int, int, int] = (96, 96, 96),
+        sw_batch_size=16,
+        overlap=0.75,
+        return_input=True,
+    ):
         "Predict on single image or sequence from a single examination"
         if checkpoint:
             self.load_checkpoint(checkpoint)
@@ -463,10 +462,12 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         return pred
 
     def save_prediction(self, data_dict: dict, argmax=True, output_postfix="pred"):
-        import torch.nn.functional as F
+        import torch.nn.functional as F  # noqa
+
         meta_dict = data_dict["image_meta_dict"].copy()
         fn = meta_dict["filename_or_obj"]
-        if isinstance(fn, list): fn = fn[0]
+        if isinstance(fn, list):
+            fn = fn[0]
         folder = Path(fn).parent
         for k in meta_dict:
             try:
@@ -475,16 +476,16 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
                 pass
         prediction = data_dict["pred"].cpu()
         spatial_shape = meta_dict["spatial_shape"].tolist()
-        prediction = F.interpolate(prediction, spatial_shape, mode="nearest").squeeze()        
+        prediction = F.interpolate(prediction, spatial_shape, mode="nearest").squeeze()
         if argmax:
             prediction = prediction.argmax(0)
-        writer = SaveImage( # TODO: Report issue with rim to MONAI
+        writer = SaveImage(  # TODO: Report issue with rim to MONAI
             output_postfix=output_postfix,
             output_dir=folder,
-            mode = "nearest",
-            padding_mode = "zeros",
-            resample=False, # Resampling produces rim around kidney
-            channel_dim = None,
+            mode="nearest",
+            padding_mode="zeros",
+            resample=False,  # Resampling produces rim around kidney
+            channel_dim=None,
             separate_folder=False,
         )
         prediction = writer(prediction, meta_dict)

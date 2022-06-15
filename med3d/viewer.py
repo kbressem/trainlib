@@ -7,6 +7,7 @@ from ipywidgets import widgets
 from monai.config.type_definitions import NdarrayOrTensor
 from monai.utils import convert_to_numpy
 
+
 def _create_label(text: str) -> ipywidgets.widgets.Label:
     "Create label widget"
 
@@ -53,9 +54,7 @@ def _create_button(description: str) -> ipywidgets.widgets.Button:
     return button
 
 
-def _create_togglebutton(
-    description: str, value: int, **kwargs
-) -> ipywidgets.widgets.Button:
+def _create_togglebutton(description: str, value: int, **kwargs) -> ipywidgets.widgets.Button:
     "Create toggle button widget"
     button = widgets.ToggleButton(
         description=description,
@@ -90,16 +89,14 @@ class BasicViewer:
         description: str = None,
         figsize=(3, 3),
         cmap: str = "bone",
-        mask_alpha = 0.25,
-        background_threshold = 0.05,
+        mask_alpha=0.25,
+        background_threshold=0.05,
     ):
         x = np.squeeze(convert_to_numpy(x))
         assert x.ndim == 3, f"x.ndim needs to be equal to but is {x.ndim}"
         if y is not None:
             y = np.squeeze(convert_to_numpy(y))
-            assert (
-                x.shape == y.shape
-            ), f"Shapes of x {x.shape} and y {y.shape} do not match"
+            assert x.shape == y.shape, f"Shapes of x {x.shape} and y {y.shape} do not match"
             self.with_mask = True
         else:
             self.with_mask = False
@@ -116,7 +113,12 @@ class BasicViewer:
     def _plot_slice(self, im_slice, with_mask, px_range):
         "Plot slice of image"
         fig, ax = plt.subplots(1, 1, figsize=self.figsize)
-        ax.imshow(self.x[im_slice - 1, :, :].clip(*px_range), cmap=self.cmap, vmin=px_range[0], vmax=px_range[1])
+        ax.imshow(
+            self.x[im_slice - 1, :, :].clip(*px_range),
+            cmap=self.cmap,
+            vmin=px_range[0],
+            vmax=px_range[1],
+        )
         if with_mask and self.y is not None:
             image_slice = self.y[im_slice - 1, :, :]
             alpha = np.zeros(image_slice.shape)
@@ -189,9 +191,7 @@ class BasicViewer:
 
         image_box = widgets.VBox(
             items,
-            layout=widgets.Layout(
-                border="none", margin="10px 5px 0px 0px", padding="5px"
-            ),
+            layout=widgets.Layout(border="none", margin="10px 5px 0px 0px", padding="5px"),
         )
 
         return image_box
@@ -208,8 +208,6 @@ class BasicViewer:
         self._generate_views()
         plt.style.use("default")
         display(self.box)
-
-
 
 
 class DicomExplorer(BasicViewer):
