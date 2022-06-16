@@ -1,22 +1,21 @@
 import argparse
 
 import monai
-from kidney.report import ReportGenerator
-from kidney.train import SegmentationTrainer
-from kidney.utils import load_config
+from trainlib.report import ReportGenerator
+from trainlib.train import SegmentationTrainer
+from trainlib.utils import load_config
 
 parser = argparse.ArgumentParser(description="Train a segmentation model.")
 parser.add_argument("--config", type=str, required=True, help="path to the config file")
+parser.add_argument("--debug", action='store_true', required=False, help="run in debug mode")
+
 args = parser.parse_args()
 config_fn = args.config
 
-
 config = load_config(config_fn)
+if args.debug:
+    config.debug = True
 monai.utils.set_determinism(seed=config.seed)
-
-# if os.path.exists(config.data.cache_dir):
-#    print("Clearing cache from previous session")
-#    shutil.rmtree(config.data.cache_dir) # rm previous cache DS
 
 print(
     f"""

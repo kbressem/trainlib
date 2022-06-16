@@ -1,72 +1,62 @@
-debug: False
-overwrite: False # overwrite outputs of last run if run_id was not changed
-ndim: 3
-run_id: tumor
-out_dir: output
-model_dir: models
-log_dir: logs
-seed: 42
-device: 'cuda:1'
-validation_interval: 2
 data:
-  data_dir: /home/bressekk/Documents/prostate/prosdata158
-  train_csv: /home/bressekk/Documents/prostate/prosdata158/prosdata_train.csv
-  valid_csv: /home/bressekk/Documents/prostate/prosdata158/prosdata_valid.csv
-  test_csv: /home/bressekk/Documents/prostate/prosdata158/prosdata_test.csv
+  data_dir: /data/root/dir
+  train_csv: train.csv
+  valid_csv: valid.csv
+  test_csv: test.csv
   # col names of the image and label files. Pass multiple names as list
-  image_cols: [t2, adc, dwi]
-  label_cols: adc_tumor_reader1
+  image_cols: [image_1, image_2]
+  label_cols: label
   train: True
   valid: True
   test: False
   dataset_type: persistent
   cache_dir: /tmp/monai-cache
   batch_size: 1
-transforms:
-  # apply multiple transforms to the input. Comment out if a transform should not be applied
-  # all arguments for specific transformes are passed as keyword arguments directly to the function
-  prob: 0.1 # independent probability for each transform to be applied
-  # base transforms
-  Spacingd:
-    pixdim: [3, 3, 3]
-    diagonal: True
-  Rand3DElasticd:
-    sigma_range: [0.5,1.5]
-    magnitude_range: [0.5, 1.5]
-    rotate_range: 5
-    shear_range: 0.5
-    translate_range: 25
-  RandCropByPosNegLabeld:
-    spatial_size: [64, 64, 64]
-    pos: 2
-    neg: 1
-    num_samples: 16
-    label_key: label
-  RandAdjustContrastd:
-    gamma: 2.0
-model:
-  # create a standard UNet with monai (for quick experiments)
-  # or edit the model.py script
-  out_channels: 2 # one for each label + background
-  channels: [16, 32, 64, 128, 256, 512]
-  strides: [2, 2, 2, 2, 2]
-  num_res_units: 6
-  act: PRELU
-  norm: INSTANCE
-  dropout: 0.2
-optimizer:
-  Novograd:
-    lr: 0.001
-    weight_decay: 0.01
-    amsgrad: True
-lr_scheduler:
-  OneCycleLR:
-    max_lr: 0.001
+debug: false
+device: cuda:0
+log_dir: logs
 loss:
   DiceFocalLoss:
-    include_background: False
-    softmax: True
-    to_onehot_y: True
+    include_background: true
+    softmax: true
+    to_onehot_y: true
+lr_scheduler:
+  OneCycleLR:
+    max_lr: 0.0001
+model:
+  act: PRELU
+  channels: [16, 32, 64, 128, 256, 512]
+  dropout: 0.1
+  norm: BATCH
+  num_res_units: 3
+  out_channels: 2 # bg, label
+  strides: [2, 2, 2, 2, 1]
+model_dir: models
+ndim: 3
+optimizer:
+  Adam:
+    lr: 0.0001
+    weight_decay: 0.001
+out_dir: output
+overwrite: true
+run_id: runs/artificial-tumor
+seed: 42
 training:
-  max_epochs: 500
-  early_stopping_patience: 1000
+  early_stopping_patience: 250
+  max_epochs: 1500
+transforms:
+  spacing: [0.5, 0.5, 0.5]
+  CustomPatchedTransform:
+    arg1: some_value
+    arg2: some_other_value
+  RandCropByPosNegLabeld:
+    label_key: label
+    neg: 2
+    num_samples: 6
+    pos: 1
+    spatial_size: [128, 128, 128]
+  mode: [bilinear, nearest]
+  orientation: RAS
+  prob: 0.1
+patch:
+  transforms: path/to/patch/transforms.py # to load CustomPatchedTransform from

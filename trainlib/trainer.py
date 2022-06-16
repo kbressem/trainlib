@@ -214,6 +214,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
     ):
         self.config = config
         self._prepare_dirs()
+        self._backup_library_and_configuration()
         self.config.device = torch.device(self.config.device)
 
         train_loader, val_loader = segmentation_dataloaders(
@@ -300,9 +301,25 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         if os.path.exists(self.config.log_dir):
             shutil.rmtree(self.config.log_dir)
 
-        # copy entire library, making everything 100% reproducible
+    def _backup_library_and_configuration(self) -> None:
+        "copy entire library and patches, making everything 100% reproducible"
         dir_name = os.path.dirname(os.path.abspath(__file__))
-        shutil.copytree(dir_name, os.path.join(self.config.run_id, "lib"), dirs_exist_ok=True)
+        shutil.copytree(dir_name, os.path.join(self.config.run_id, "trainlib"), dirs_exist_ok=True)
+        os.makedirs(os.path.join(self.config.run_id, "patch"), exist_ok=True)
+        for k in self.config.patch.keys():
+            fn = os.path.join(self.config.run_id, "patch", k + ".py")
+            shutil.copy(self.config.patch[k], fn)
+
+        # also save all modules and versions in current environment
+        # OPTIMIZE: save only modules relevant for this training
+        try:
+            from pip._internal.operations import freeze
+        except ImportError:  # pip < 10.0
+            from pip.operations import freeze
+        req = freeze.freeze()
+        with open(os.path.join(self.config.run_id, "requirements.txt"), "w+") as f:
+            for line in req:
+                f.write(line + "\n")
 
     def _add_early_stopping(self) -> None:
         "Add early stopping handler to `SegmentationTrainer`"

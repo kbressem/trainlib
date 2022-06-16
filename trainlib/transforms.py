@@ -45,6 +45,8 @@ def get_base_transforms(config: dict) -> List[Callable]:
             allow_missing_keys=True,
         ),
     ]
+    if config.debug:
+        tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
     return tfms
 
 
