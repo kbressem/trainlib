@@ -2,7 +2,7 @@ import argparse
 
 import monai
 from trainlib.report import ReportGenerator
-from trainlib.train import SegmentationTrainer
+from trainlib.trainer import SegmentationTrainer
 from trainlib.utils import load_config
 
 parser = argparse.ArgumentParser(description="Train a segmentation model.")

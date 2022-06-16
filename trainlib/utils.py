@@ -85,6 +85,8 @@ def import_patched(path: Union[str, Path], name: str) -> Callable:
         name: Name of function to import
     """
     path = Path(path).resolve()
-    sys.path.append(path.parent)
-    patch = importlib.import_module(f"{path.parent.name}.{path.name.replace('.py', '')}")
+    if str(path.parent) not in sys.path:
+        sys.path.append(str(path.parent))
+    module = path.name.replace('.py', '')
+    patch = importlib.import_module(module)
     return getattr(patch, name)
