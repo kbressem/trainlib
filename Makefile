@@ -18,8 +18,7 @@ uninstall:
 	pip uninstall pip-autoremove -y
 
 clean:
-	rm -r *.egg-info
 	rm -r .ipynb_checkpoints
 	rm -r data/.ipynb_checkpoints
 	rm -r tests/.ipynb_checkpoints
-	rm -r trainlin/.ipynb_checkpoints
+	rm -r trainlib/.ipynb_checkpoints
