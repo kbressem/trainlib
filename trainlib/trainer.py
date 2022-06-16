@@ -23,12 +23,10 @@ from monai.handlers import (
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
+from . import loss, model, optimizer
 from .data import segmentation_dataloaders
-from .loss import get_loss
-from .model import get_model
-from .optimizer import get_optimizer
 from .transforms import get_val_post_transforms
-from .utils import USE_AMP
+from .utils import USE_AMP, import_patched
 
 
 def loss_logger(engine):
@@ -221,9 +219,10 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         train_loader, val_loader = segmentation_dataloaders(
             config=config, train=True, valid=True, test=False
         )
-        network = get_model(config=config).to(config.device)
-        optimizer = get_optimizer(network, config=config)
-        loss_fn = get_loss(config=config)
+
+        network = self._get_model().to(config.device)
+        optimizer = self._get_optimizer(network)
+        loss_fn = self._get_loss()
         val_post_transforms = get_val_post_transforms(config=config)
         val_handlers = get_val_handlers(network, config=config)
         self.evaluator = get_evaluator(
@@ -269,7 +268,29 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         if save_latest_metrics:
             self._add_metrics_saver()
 
+    def _get_model(self) -> torch.nn.Module:
+        try:
+            get_model = import_patched(self.config.patch.model, "get_model")
+        except AttributeError:
+            get_model = getattr(model, "get_model")
+        return get_model(self.config)
+
+    def _get_optimizer(self, network: torch.nn.Module) -> torch.optim.Optimizer:
+        try:
+            get_optimizer = import_patched(self.config.patch.optimizer, "get_optimizer")
+        except AttributeError:
+            get_optimizer = getattr(optimizer, "get_optimizer")
+        return get_optimizer(network, self.config)
+
+    def _get_loss(self) -> Callable:
+        try:
+            get_loss = import_patched(self.config.patch.loss, "get_loss")
+        except AttributeError:
+            get_loss = getattr(loss, "get_loss")
+        return get_loss(self.config)
+
     def _prepare_dirs(self) -> None:
+        "Set up directories for saving logs, outputs and configs of current training session"
         # create run_id, copy config file for reproducibility
         os.makedirs(self.config.run_id, exist_ok=True)
         with open(os.path.join(self.config.run_id, "config.yaml"), "w+") as f:
@@ -281,9 +302,10 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
 
         # copy entire library, making everything 100% reproducible
         dir_name = os.path.dirname(os.path.abspath(__file__))
-        shutil.copytree(dir_name, os.path.join(self.config.run_id, "lib"))
+        shutil.copytree(dir_name, os.path.join(self.config.run_id, "lib"), dirs_exist_ok=True)
 
     def _add_early_stopping(self) -> None:
+        "Add early stopping handler to `SegmentationTrainer`"
         early_stopping = EarlyStopHandler(
             patience=self.config.training.early_stopping_patience,
             min_delta=1e-4,
@@ -317,7 +339,6 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         metric_saver.attach(self.evaluator)
 
     def _add_eval_loss(self) -> None:
-        # TODO improve by adding this to val handlers
         eval_loss_handler = ignite.metrics.Loss(
             loss_fn=self.loss_function,
             output_transform=lambda output: (
@@ -484,7 +505,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             output_dir=folder,
             mode="nearest",
             padding_mode="zeros",
-            resample=False,  # Resampling produces rim around kidney
+            resample=False,  # Resampling produces rim around prediction
             channel_dim=None,
             separate_folder=False,
         )

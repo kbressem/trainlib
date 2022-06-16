@@ -1,52 +1,28 @@
+from typing import Callable, List
+
 import monai
-from monai.transforms import (
-    AsDiscreted,
-    Compose,
-    ConcatItemsd,
-    EnsureTyped,
-    Lambdad,
-    LoadImaged,
-    NormalizeIntensityd,
-    ScaleIntensityd,
-    Spacingd,
-)
+from monai.transforms import Compose
 from monai.utils.enums import CommonKeys
 
-from . import patch
-from .patch import EnsureChannelFirstd
-
-# images should be interploated with `bilinear` but masks with `nearest`
-# ---------- base transforms ----------
-# applied everytime
+from .utils import import_patched
 
 
-def get_base_transforms(config: dict, minv: int = 0, maxv: int = 1) -> list:
-    tfms = [
-        LoadImaged(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True),
-        EnsureChannelFirstd(
-            keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True
-        ),
-        Spacingd(
-            keys=config.data.image_cols + config.data.label_cols,
-            mode=config.transforms.mode,
-            pixdim=config.transforms.spacing,
-            allow_missing_keys=True,
-        ),
-    ]
-    return tfms
-
-
-# ---------- train transforms ----------
-
-
-def get_transform(tfm_name: str, config: dict):
-    "Get transform form monai.transforms with arguments form config"
-    if hasattr(patch, tfm_name):
-        transform = getattr(patch, tfm_name)
-    else:
-        transform = getattr(monai.transforms, tfm_name)
-        assert "dictionary" in transform.__module__, f"{tfm_name} is not a dictionary transform"
-    kwargs = config.transforms[tfm_name]
+def get_transform(tfm_name: str, config: dict, **kwargs):
+    "Get transform form monai.transforms with arguments from config"
+    try:
+        transform = import_patched(config.patch.transforms, tfm_name)
+    except AttributeError:
+        if hasattr(monai.transforms, tfm_name):
+            transform = getattr(monai.transforms, tfm_name)
+            assert "dictionary" in transform.__module__, f"{tfm_name} is not a dictionary transform"
+        else:
+            raise AttributeError(
+                f"{tfm_name} not in `monai.transforms` nor in {config.patch.transforms}"
+            )
+    if tfm_name in config.transforms.keys():
+        for k in kwargs.keys():
+            config.transforms[tfm_name].pop(k)
+        kwargs = {**config.transforms[tfm_name], **kwargs}
     allowed_kwargs = transform.__init__.__code__.co_varnames
     if "keys" not in kwargs.keys():
         kwargs["keys"] = config.data.image_cols + config.data.label_cols
@@ -57,12 +33,23 @@ def get_transform(tfm_name: str, config: dict):
     return transform(**kwargs)
 
 
-def get_train_transforms(config: dict):
-    """Build transforms dynamically from config.
+def get_base_transforms(config: dict) -> List[Callable]:
+    "Transforms applied everytime at the start of the transform pipeline"
+    tfms = [
+        get_transform("LoadImaged", config=config, allow_missing_keys=True),
+        get_transform("EnsureChannelFirstd", config=config, allow_missing_keys=True),
+        get_transform(
+            "Spacingd",
+            config=config,
+            pixdim=config.transforms.spacing,
+            allow_missing_keys=True,
+        ),
+    ]
+    return tfms
 
-    The order of transforms in the config will be irgnored and transforms are
-    ordered as: spatial transforms, croppad, spatial transforms, rest
 
+def get_train_transforms(config: dict) -> Compose:
+    """Build transforms dynamically from config for data augmentation during training.
     Args:
         config: parsed YAML file with global configurations
     Returns:
@@ -83,47 +70,84 @@ def get_train_transforms(config: dict):
     # for more compatibility with monai.engines
 
     tfms += [
-        ScaleIntensityd(keys=config.data.image_cols, minv=0, maxv=1, allow_missing_keys=True),
-        NormalizeIntensityd(keys=config.data.image_cols, allow_missing_keys=True),
-        ConcatItemsd(keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0),
-        ConcatItemsd(keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0),
-    ]
-
-    return Compose(tfms)
-
-
-# ---------- valid transforms ----------
-
-
-def get_val_transforms(config: dict):
-    tfms = get_base_transforms(config=config)
-    tfms += [EnsureTyped(keys=config.data.image_cols + config.data.label_cols)]
-    tfms += [
-        ScaleIntensityd(keys=config.data.image_cols, minv=0, maxv=1, allow_missing_keys=True),
-        NormalizeIntensityd(keys=config.data.image_cols, allow_missing_keys=True),
-        ConcatItemsd(keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0),
-        ConcatItemsd(keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0),
-    ]
-    return Compose(tfms)
-
-
-# ---------- test transforms ----------
-# same as valid transforms
-
-
-def get_test_transforms(config: dict):
-    tfms = get_base_transforms(config=config)
-    tfms += [
-        EnsureTyped(keys=config.data.image_cols + config.data.label_cols, allow_missing_keys=True)
-    ]
-    tfms += [
-        ScaleIntensityd(keys=config.data.image_cols, minv=0, maxv=1, allow_missing_keys=True),
-        NormalizeIntensityd(keys=config.data.image_cols, allow_missing_keys=True),
-        ConcatItemsd(
-            keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0, allow_missing_keys=True
+        get_transform(
+            "ScaleIntensityd",
+            config=config,
+            keys=config.data.image_cols,
+            minv=0,
+            maxv=1,
+            allow_missing_keys=True,
         ),
-        ConcatItemsd(
-            keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0, allow_missing_keys=True
+        get_transform(
+            "NormalizeIntensityd",
+            config=config,
+            keys=config.data.image_cols,
+            allow_missing_keys=True,
+        ),
+        get_transform(
+            "ConcatItemsd", config=config, keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0
+        ),
+        get_transform(
+            "ConcatItemsd", config=config, keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0
+        ),
+    ]
+
+    return Compose(tfms)
+
+
+def get_val_transforms(config: dict) -> Compose:
+    "Transforms applied only to the valid dataset"
+    tfms = get_base_transforms(config=config)
+    tfms += [
+        get_transform("EnsureTyped", config=config),
+        get_transform(
+            "ScaleIntensityd",
+            config=config,
+            keys=config.data.image_cols,
+            minv=0,
+            maxv=1,
+            allow_missing_keys=True,
+        ),
+        get_transform(
+            "NormalizeIntensityd",
+            config=config,
+            keys=config.data.image_cols,
+            allow_missing_keys=True,
+        ),
+        get_transform(
+            "ConcatItemsd", config=config, keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0
+        ),
+        get_transform(
+            "ConcatItemsd", config=config, keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0
+        ),
+    ]
+    return Compose(tfms)
+
+
+def get_test_transforms(config: dict) -> Compose:
+    "Transforms applied only to the test dataset"
+    tfms = get_base_transforms(config=config)
+    tfms += [
+        get_transform("EnsureTyped", config=config),
+        get_transform(
+            "ScaleIntensityd",
+            config=config,
+            keys=config.data.image_cols,
+            minv=0,
+            maxv=1,
+            allow_missing_keys=True,
+        ),
+        get_transform(
+            "NormalizeIntensityd",
+            config=config,
+            keys=config.data.image_cols,
+            allow_missing_keys=True,
+        ),
+        get_transform(
+            "ConcatItemsd", config=config, keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0
+        ),
+        get_transform(
+            "ConcatItemsd", config=config, keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0
         ),
     ]
 
@@ -131,16 +155,20 @@ def get_test_transforms(config: dict):
 
 
 def get_val_post_transforms(config: dict):
+    "Transforms applied to the model output, before metrics are calculated"
     tfms = [
-        EnsureTyped(keys=[CommonKeys.PRED, CommonKeys.LABEL]),
-        AsDiscreted(
+        get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]),
+        get_transform(
+            "AsDiscreted",
+            config=config,
             keys=CommonKeys.PRED,
             argmax=True,
             to_onehot=config.model.out_channels,
             num_classes=config.model.out_channels,
         ),
-        Lambdad(keys=CommonKeys.LABEL, func=lambda x: x[0:1]),
-        AsDiscreted(
+        get_transform(
+            "AsDiscreted",
+            config=config,
             keys=CommonKeys.LABEL,
             to_onehot=config.model.out_channels,
             num_classes=config.model.out_channels,

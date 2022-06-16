@@ -46,8 +46,7 @@ transforms:
     gamma: 2.0
 model:
   # create a standard UNet with monai (for quick experiments)
-  # or specify a path to a script with more sophisticated archtitecture
-  path_to_model: /path/to/model.py
+  # or edit the model.py script
   out_channels: 2 # one for each label + background
   channels: [16, 32, 64, 128, 256, 512]
   strides: [2, 2, 2, 2, 2]

@@ -2,7 +2,7 @@ import monai
 import torch
 
 
-def get_optimizer(model: torch.nn.Module, config: dict):
+def get_optimizer(model: torch.nn.Module, config: dict) -> torch.optim.Optimizer:
     """Create an optimizer of `type` with specific keyword arguments from config.
     Example:
 

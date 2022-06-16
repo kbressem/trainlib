@@ -1,8 +1,17 @@
+import importlib
+import multiprocessing
 import os
+import resource
+import sys
+from pathlib import Path
+from typing import Callable, Union
 
 import monai
 import munch
+import psutil
 import yaml
+
+USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)
 
 
 def load_config(fn: str = "config.yaml"):
@@ -33,10 +42,6 @@ def load_config(fn: str = "config.yaml"):
 
 def num_workers(config: dict):
     "Get max supported workers -2 for multiprocessing"
-    import multiprocessing
-    import resource
-
-    import psutil
 
     # first check for max number of open files allowed on system
     soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
@@ -57,7 +62,7 @@ def num_workers(config: dict):
         n_workers = max_workers
 
     # now check if we will run into OOM errors because of too many workers
-    # In this project 2GB/Worker seems to be save
+    # In most projects 2GB/Worker seems to be save
 
     available_ram_in_gb = psutil.virtual_memory()[0] / 1024**3
     max_workers = int(available_ram_in_gb // 2)
@@ -67,4 +72,19 @@ def num_workers(config: dict):
     return n_workers
 
 
-USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)
+def import_patched(path: Union[str, Path], name: str) -> Callable:
+    """Import function `name` from `path`, used to inject custom, project specific
+    code into `trainlib` without changing the main codebase.
+    E.g., if one wants to change the model, instead of editing trainlib/model.py,
+    one can provide a path to another model in the config at: config.patch.model
+    `trainlib` will then try to first import from the given patched model and, if this
+    failes, fall to import from trainlib/model.py.
+
+    Args:
+        path: Path to python script, containing the patched functionality.
+        name: Name of function to import
+    """
+    path = Path(path).resolve()
+    sys.path.append(path.parent)
+    patch = importlib.import_module(f"{path.parent.name}.{path.name.replace('.py', '')}")
+    return getattr(patch, name)
