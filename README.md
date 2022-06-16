@@ -1,5 +1,4 @@
-# AI Template
- > Template for MONAI projects
+# Trainlib
 
 ## Installation
 
