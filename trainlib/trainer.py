@@ -22,6 +22,7 @@ from monai.handlers import (
 )
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
+from codecarbon import EmissionsTracker
 
 from . import loss, model, optimizer
 from .data import segmentation_dataloaders
@@ -400,8 +401,8 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
                 pass  # train from scratch
 
         # train the model
-        super().run()
-
+        with EmissionsTracker(output_dir = self.config.out_dir, log_level="warning") as tracker:
+            super().run()
         # make metrics and losses more accessible
         self.loss = {
             "iter": [_iter for _iter, _ in self.metric_logger.loss],

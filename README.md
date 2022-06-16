@@ -33,8 +33,19 @@ function is expected in the patch-script.
 
 **Reproducibility**  
 With each new training, `trainlib` will copy **everything** to an output directory.
-This includes configurations, the complete codebase and all patches. 
+This includes configurations, the complete codebase and all patches.
 This way, the results can be reproduced later on, even if the library did change in the meantime.
+
+## Features
+`trainlib` comes with already implemented:
+- training routine for a U-Net segmentation model for medical images
+- Logging of Dice coefficient, Hausdorff distance, surface distance and loss
+- Logging of intermediate stages for segmentation
+- Creating of simple report after training, including a GIF of segmentation progress
+- Logging of CO2 emmission with [codecarbon](https://github.com/mlco2/codecarbon)
+- Checkpointing of models after each improvement
+- possibility to resume from checkpoints
+
 
 ## ToDo
 
@@ -46,7 +57,7 @@ This way, the results can be reproduced later on, even if the library did change
  - [ ] enable multi gpu training (ray vs. monai?)  
  - [x] argparse to train.py
  - [x] add val loss (tqdm and ~~loss logs~~)
- - [ ] add CO2 estimation (https://github.com/mlco2/codecarbon#quickstart-)
+ - [x] add CO2 estimation (https://github.com/mlco2/codecarbon#quickstart-)
  - [ ] add final classification report
 
 
