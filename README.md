@@ -44,6 +44,7 @@ This way, the results can be reproduced later on, even if the library did change
 - Logging of CO2 emmission with [codecarbon](https://github.com/mlco2/codecarbon)
 - Checkpointing of models after each improvement
 - possibility to resume from checkpoints
+- Enhanced viewing functions for mecical images inside jupyter notebook
 
 
 ## ToDo
