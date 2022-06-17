@@ -19,10 +19,12 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
             raise AttributeError(
                 f"{tfm_name} not in `monai.transforms` nor in {config.patch.transforms}"
             )
-    if tfm_name in config.transforms.keys():
+    transform_configs = {**config.transforms.base, **config.transforms.train}
+    if tfm_name in transform_configs.keys():
         for k in kwargs.keys():
-            config.transforms[tfm_name].pop(k)
-        kwargs = {**config.transforms[tfm_name], **kwargs}
+            transform_configs[tfm_name].pop(k)
+        kwargs = {**transform_configs[tfm_name], **kwargs}
+
     allowed_kwargs = transform.__init__.__code__.co_varnames
     if "keys" not in kwargs.keys():
         kwargs["keys"] = config.data.image_cols + config.data.label_cols
@@ -38,13 +40,9 @@ def get_base_transforms(config: dict) -> List[Callable]:
     tfms = [
         get_transform("LoadImaged", config=config, allow_missing_keys=True),
         get_transform("EnsureChannelFirstd", config=config, allow_missing_keys=True),
-        get_transform(
-            "Spacingd",
-            config=config,
-            pixdim=config.transforms.spacing,
-            allow_missing_keys=True,
-        ),
     ]
+    tfm_names = [tn for tn in config.transforms.base]
+    tfms += [get_transform(tn, config) for tn in tfm_names]
     if config.debug:
         tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
     return tfms
@@ -62,8 +60,7 @@ def get_train_transforms(config: dict) -> Compose:
     # some arguments in config.transforms are not a transform but a global argument
     # such as the probability a transfor is applied
 
-    not_a_transform = ["prob", "spacing", "orientation", "mode"]
-    tfm_names = [tn for tn in config.transforms if tn not in not_a_transform]
+    tfm_names = [tn for tn in config.transforms.train]
     train_tfms = [get_transform(tn, config) for tn in tfm_names]
     tfms += [tfm for tfm in train_tfms if tfm not in tfms]  # add rest
 
