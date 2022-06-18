@@ -45,6 +45,7 @@ This way, the results can be reproduced later on, even if the library did change
 - Checkpointing of models after each improvement
 - possibility to resume from checkpoints
 - Enhanced viewing functions for mecical images inside jupyter notebook
+- Send training updates to mobile phone using [pushover](https://pushover.net/)
 
 
 ## ToDo
