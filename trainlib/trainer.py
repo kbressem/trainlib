@@ -1,5 +1,6 @@
 import os
 import shutil
+from functools import partial
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
 
@@ -28,6 +29,7 @@ from . import loss, model, optimizer
 from .data import segmentation_dataloaders
 from .transforms import get_val_post_transforms
 from .utils import USE_AMP, import_patched
+from .handlers import PushnotificationHandler
 
 
 def loss_logger(engine):
@@ -114,6 +116,9 @@ def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
             save_dict={f"network_{config.run_id.split('/')[-1]}": network},
             save_key_metric=True,
         ),
+        PushnotificationHandler(
+            config=config
+        )
     ]
 
     return val_handlers

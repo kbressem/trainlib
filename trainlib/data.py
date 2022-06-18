@@ -141,7 +141,7 @@ def segmentation_dataloaders(
     test_df = pd.read_csv(test_csv)
 
     if debug:
-        train_df = train_df.sample(25)
+        train_df = train_df.sample(10)
         valid_df = valid_df.sample(5)
 
     for col in image_cols + label_cols:
