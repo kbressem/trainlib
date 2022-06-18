@@ -10,7 +10,7 @@ data:
   valid: True
   test: False
   dataset_type: persistent
-  cache_dir: /tmp/monai-cache
+  cache_dir: .monai-cache
   batch_size: 1
 debug: false
 device: cuda:0
@@ -39,7 +39,7 @@ optimizer:
     weight_decay: 0.001
 out_dir: output
 overwrite: true
-run_id: runs/artificial-tumor
+run_id: runs/name
 seed: 42
 training:
   early_stopping_patience: 250
@@ -60,3 +60,4 @@ transforms:
   prob: 0.1
 patch:
   transforms: path/to/patch/transforms.py # to load CustomPatchedTransform from
+pushover_credentials: /path/to/.pushover_credentials.yaml
