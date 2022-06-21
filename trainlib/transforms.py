@@ -43,8 +43,6 @@ def get_base_transforms(config: dict) -> List[Callable]:
     ]
     tfm_names = [tn for tn in config.transforms.base]
     tfms += [get_transform(tn, config) for tn in tfm_names]
-    if config.debug:
-        tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
     return tfms
 
 
@@ -90,7 +88,9 @@ def get_train_transforms(config: dict) -> Compose:
             "ConcatItemsd", config=config, keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0
         ),
     ]
-
+    if config.debug:
+        tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
+    
     return Compose(tfms)
 
 
@@ -120,14 +120,16 @@ def get_val_transforms(config: dict) -> Compose:
             "ConcatItemsd", config=config, keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0
         ),
     ]
-    return Compose(tfms)
+    if config.debug:
+        tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
 
+    return Compose(tfms)
 
 def get_test_transforms(config: dict) -> Compose:
     "Transforms applied only to the test dataset"
     tfms = get_base_transforms(config=config)
     tfms += [
-        get_transform("EnsureTyped", config=config),
+        get_transform("EnsureTyped", config=config, allow_missing_keys=True),
         get_transform(
             "ScaleIntensityd",
             config=config,
@@ -146,7 +148,7 @@ def get_test_transforms(config: dict) -> Compose:
             "ConcatItemsd", config=config, keys=config.data.image_cols, name=CommonKeys.IMAGE, dim=0
         ),
         get_transform(
-            "ConcatItemsd", config=config, keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0
+            "ConcatItemsd", config=config, keys=config.data.label_cols, name=CommonKeys.LABEL, dim=0, allow_missing_keys=True
         ),
     ]
 
