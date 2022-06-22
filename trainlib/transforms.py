@@ -64,8 +64,6 @@ def get_train_transforms(config: dict) -> Compose:
     """
     tfms = get_base_transforms(config=config)
 
-    # some arguments in config.transforms are not a transform but a global argument
-    # such as the probability a transfor is applied
     if "train" in config.transforms.keys():
         tfm_names = [tn for tn in config.transforms.train]
         train_tfms = [get_transform(tn, config) for tn in tfm_names]
@@ -76,20 +74,20 @@ def get_train_transforms(config: dict) -> Compose:
     # for more compatibility with monai.engines
 
     tfms += [
-        get_transform(
-            "ScaleIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            minv=0,
-            maxv=1,
-            allow_missing_keys=True,
-        ),
-        get_transform(
-            "NormalizeIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            allow_missing_keys=True,
-        ),
+        # get_transform(
+        #     "ScaleIntensityd",
+        #     config=config,
+        #     keys=config.data.image_cols,
+        #     minv=0,
+        #     maxv=1,
+        #     allow_missing_keys=True,
+        # ),
+        # get_transform(
+        #     "NormalizeIntensityd",
+        #     config=config,
+        #     keys=config.data.image_cols,
+        #     allow_missing_keys=True,
+        # ),
         get_transform(
             "ConcatItemsd",
             config=config,
