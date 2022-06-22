@@ -29,7 +29,8 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
         ):
             transform_config = config.transforms[k]
             for k in kwargs.keys():
-                transform_config[tfm_name].pop(k)
+                if k in transform_config[tfm_name].keys():
+                    transform_config[tfm_name].pop(k)
             kwargs = {**transform_config[tfm_name], **kwargs}
 
     allowed_kwargs = transform.__init__.__code__.co_varnames
