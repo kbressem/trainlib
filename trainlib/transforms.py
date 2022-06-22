@@ -103,8 +103,8 @@ def get_train_transforms(config: dict) -> Compose:
             dim=0,
         ),
     ]
-    if config.debug:
-        tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
+    # if config.debug:
+    #     tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
 
     return Compose(tfms)
 
@@ -133,8 +133,8 @@ def get_val_transforms(config: dict) -> Compose:
         tfm_names = [tn for tn in config.transforms.valid]
         tfms += [get_transform(tn, config) for tn in tfm_names]
 
-    if config.debug:
-        tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
+    # if config.debug:
+    #     tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
 
     tfms += [
         get_transform(
