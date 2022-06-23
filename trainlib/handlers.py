@@ -136,9 +136,16 @@ class DebugHandler:
     def batch_statistics(self, engine: ignite.engine.Engine) -> None:
         image_keys = self.config.data.image_cols
         label_keys = self.config.data.label_cols
+        keys = image_keys + label_keys
+        # If multiple images/labels are used, they are concatenated at the end of transforms
+        # new labels CommonKeys.LABEL (`label`) and CommonKeys.IMAGE (`image`)
+        if "image" not in keys:
+            keys.append("image")
+        if "label" not in keys:
+            keys.append("label")
 
         message: str = self._table_row()
-        for key in image_keys + label_keys + ["image", "label"]:
+        for key in keys:
             for items in engine.state.batch[key]:
                 items = convert_to_tensor(items)
                 message += self._table_row([key] + self._extract_statisics(items))
