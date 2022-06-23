@@ -20,7 +20,6 @@ class PushnotificationHandler:
     def __init__(self, config: dict) -> None:
         self.config = config
 
-    def get_credentials(self):
         if "pushover_credentials" not in self.config.keys():
             self.logger.warning(
                 "No pushover credentials file submitted, "
@@ -29,14 +28,18 @@ class PushnotificationHandler:
                 "path to a yaml file, containing the `app_token`, `user_key` and `proxies` "
                 "(optional) in the config at `pushover_credentials`"
             )
-            return False
-        credentials = self.config.pushover_credentials
-        with open(credentials, "r") as stream:
-            credentials = yaml.safe_load(stream)
-        self.app_token = credentials["app_token"]
-        self.user_key = credentials["user_key"]
-        self.proxies = credentials["proxies"]
-        return True
+            self.enable_notifications = False
+        elif config.debug:
+            # No notifications in debug mode
+            self.enable_notifications = False
+        else:
+            credentials = self.config.pushover_credentials
+            with open(credentials, "r") as stream:
+                credentials = yaml.safe_load(stream)
+            self.app_token = credentials["app_token"]
+            self.user_key = credentials["user_key"]
+            self.proxies = credentials["proxies"]
+            self.enable_notifications = True
 
     def attach(self, engine: ignite.engine.Engine) -> None:
         """
@@ -44,7 +47,7 @@ class PushnotificationHandler:
             engine: Ignite Engine, should be an evaluator with metrics.
         """
         self.logger = engine.logger
-        if self.get_credentials():
+        if self.enable_notifications:
             engine.add_event_handler(ignite.engine.Events.STARTED, self.start_training)
             engine.add_event_handler(
                 ignite.engine.Events.EPOCH_COMPLETED, self.push_metrics
