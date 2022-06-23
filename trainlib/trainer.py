@@ -29,7 +29,7 @@ from . import loss, model, optimizer
 from .data import segmentation_dataloaders
 from .transforms import get_val_post_transforms
 from .utils import USE_AMP, import_patched
-from .handlers import PushnotificationHandler
+from .handlers import DebugHandler, PushnotificationHandler
 
 
 def loss_logger(engine):
@@ -70,7 +70,9 @@ def pred_logger(engine):
         torch.save(engine.state.output[0]["image"], os.path.join(root, "image.pt"))
 
     if epoch == engine.state.best_metric_epoch:
-        torch.save(engine.state.output[0]["pred"], os.path.join(root, f"pred_epoch_{epoch}.pt"))
+        torch.save(
+            engine.state.output[0]["pred"], os.path.join(root, f"pred_epoch_{epoch}.pt")
+        )
 
 
 def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
@@ -116,15 +118,16 @@ def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
             save_dict={f"network_{config.run_id.split('/')[-1]}": network},
             save_key_metric=True,
         ),
-        PushnotificationHandler(
-            config=config
-        )
+        PushnotificationHandler(config=config),
+        DebugHandler(config=config),
     ]
 
     return val_handlers
 
 
-def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: dict) -> list:
+def get_train_handlers(
+    evaluator: monai.engines.SupervisedEvaluator, config: dict
+) -> list:
     """Create default handlers for model training
     Args:
         evaluator: an engine of type `monai.engines.SupervisedEvaluator` for evaluations
@@ -143,13 +146,16 @@ def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: dic
 
     train_handlers = [
         ValidationHandler(validator=evaluator, interval=1, epoch_level=True),
-        StatsHandler(tag_name="train_loss", output_transform=from_engine(["loss"], first=True)),
+        StatsHandler(
+            tag_name="train_loss", output_transform=from_engine(["loss"], first=True)
+        ),
         StatsHandler(tag_name="loss_logger", iteration_print_logger=loss_logger),
         TensorBoardStatsHandler(
             log_dir=config.log_dir,
             tag_name="train_loss",
             output_transform=from_engine(["loss"], first=True),
         ),
+        DebugHandler(config=config),
     ]
 
     return train_handlers
@@ -195,7 +201,9 @@ def get_evaluator(
         key_val_metric={
             "val_mean_dice": MeanDice(
                 include_background=False,
-                output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+                output_transform=lambda x: from_engine(["pred", "label"])(
+                    val_post_transforms(x)
+                ),
             )
         },
         val_handlers=val_handlers,
@@ -264,7 +272,9 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             getattr(monai.handlers, m)(
                 include_background=False,
                 reduction="mean",
-                output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+                output_transform=lambda x: from_engine(["pred", "label"])(
+                    val_post_transforms(x)
+                ),
                 # from_engine(["pred", "label"]),
             ).attach(self.evaluator, m)
 
@@ -310,7 +320,9 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
     def _backup_library_and_configuration(self) -> None:
         "copy entire library and patches, making everything 100% reproducible"
         dir_name = os.path.dirname(os.path.abspath(__file__))
-        shutil.copytree(dir_name, os.path.join(self.config.run_id, "trainlib"), dirs_exist_ok=True)
+        shutil.copytree(
+            dir_name, os.path.join(self.config.run_id, "trainlib"), dirs_exist_ok=True
+        )
         os.makedirs(os.path.join(self.config.run_id, "patch"), exist_ok=True)
         for k in self.config.patch.keys():
             fn = os.path.join(self.config.run_id, "patch", k + ".py")
@@ -406,13 +418,17 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
                 pass  # train from scratch
 
         # train the model
-        with EmissionsTracker(output_dir = self.config.out_dir, log_level="warning") as tracker:
+        with EmissionsTracker(
+            output_dir=self.config.out_dir, log_level="warning"
+        ) as tracker:
             super().run()
         # make metrics and losses more accessible
         self.loss = {
             "iter": [_iter for _iter, _ in self.metric_logger.loss],
             "loss": [_loss for _, _loss in self.metric_logger.loss],
-            "epoch": [_iter // self.state.epoch_length for _iter, _ in self.metric_logger.loss],
+            "epoch": [
+                _iter // self.state.epoch_length for _iter, _ in self.metric_logger.loss
+            ],
         }
 
         self.metrics = {
@@ -448,7 +464,9 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         verbose=True,
     ) -> None:
         "Reduce learning rate by `factor` every `patience` epochs if kex_metric does not improve"
-        assert "ReduceLROnPlateau" not in self.schedulers, "ReduceLROnPlateau already added"
+        assert (
+            "ReduceLROnPlateau" not in self.schedulers
+        ), "ReduceLROnPlateau already added"
         reduce_lr_on_plateau = monai.handlers.LrScheduleHandler(
             torch.optim.lr_scheduler.ReduceLROnPlateau(
                 optimizer=self.optimizer,
@@ -460,7 +478,9 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             print_lr=True,
             name="ReduceLROnPlateau",
             epoch_level=True,
-            step_transform=lambda engine: engine.state.metrics[engine.state.key_metric_name],
+            step_transform=lambda engine: engine.state.metrics[
+                engine.state.key_metric_name
+            ],
         )
         reduce_lr_on_plateau.attach(self.evaluator)
         self.schedulers += ["ReduceLROnPlateau"]
@@ -487,7 +507,9 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         "Predict on single image or sequence from a single examination"
         if checkpoint:
             self.load_checkpoint(checkpoint)
-        dataloader = segmentation_dataloaders(self.config, train=False, valid=False, test=True)
+        dataloader = segmentation_dataloaders(
+            self.config, train=False, valid=False, test=True
+        )
         if isinstance(file, str):
             file = [file]
         images = {col_name: f for col_name, f in zip(self.config.data.image_cols, file)}

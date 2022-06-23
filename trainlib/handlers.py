@@ -5,7 +5,6 @@ import requests
 from typing import Dict, List
 
 import torch
-from monai.transforms.utils import ensure_tuple
 from monai.utils.type_conversion import convert_to_tensor
 
 
@@ -132,29 +131,20 @@ class DebugHandler:
             )
 
     def batch_statistics(self, engine: ignite.engine.Engine) -> None:
-        image_keys = ensure_tuple(self.config.image_cols)
-        label_keys = ensure_tuple(self.config.label_cols)
+        image_keys = self.config.data.image_cols
+        label_keys = self.config.data.label_cols
 
         message: str = self._table_row()
-        for key in image_keys + label_keys + ("image", "label"):
+        for key in image_keys + label_keys + ["image", "label"]:
             for items in engine.state.batch[key]:
                 items = convert_to_tensor(items)
                 message += self._table_row([key] + self._extract_statisics(items))
 
-        self.logger.info("Batch Statistics:\n")
-        self.logger.info(message)
-
-        for key in image_keys + label_keys + ("image", "label"):
-            for items in engine.state.batch[key]:
-                items = convert_to_tensor(items)
-                message: str = self._table_row()
-                for i, item in enumerate(torch.unbind(items, 0)):
-                    message += self._table_row([i] + self._extract_statisics(items))
-                self.logger.info(f"Statistics on {key}:\n")
-                self.logger.info(message)
+        self.logger.info("\nBatch Statistics:")
+        self.logger.info(message + "\n")
 
     def _extract_statisics(self, x: torch.Tensor) -> List:
-        shape = x.shape
+        shape = tuple(x.shape)
         mean = torch.mean(x).item()
         std = torch.std(x).item()
         min = torch.min(x).item()
@@ -163,9 +153,9 @@ class DebugHandler:
         return [shape, mean, std, min, max, unique]
 
     def _table_row(self, items: List = None) -> None:
-        "Create table row with colwidth of 12 and colspacing of 2"
+        "Create table row with colwidth of 18 and colspacing of 2"
         if items is None:  # print header
             items = ["item", "shape", "mean", "std", "min", "max", "unique val"]
-        items = [str(i)[:10] for i in items]
-        format_row = "{:>12}" * (len(items) + 1)
-        return format_row.format("", *items) + "\n"
+        items = [str(i)[:18] for i in items]
+        format_row = "{:>20}" * (len(items) + 1)
+        return "\n" + format_row.format("", *items)

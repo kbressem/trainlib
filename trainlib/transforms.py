@@ -74,20 +74,6 @@ def get_train_transforms(config: dict) -> Compose:
     # for more compatibility with monai.engines
 
     tfms += [
-        # get_transform(
-        #     "ScaleIntensityd",
-        #     config=config,
-        #     keys=config.data.image_cols,
-        #     minv=0,
-        #     maxv=1,
-        #     allow_missing_keys=True,
-        # ),
-        # get_transform(
-        #     "NormalizeIntensityd",
-        #     config=config,
-        #     keys=config.data.image_cols,
-        #     allow_missing_keys=True,
-        # ),
         get_transform(
             "ConcatItemsd",
             config=config,
@@ -103,8 +89,6 @@ def get_train_transforms(config: dict) -> Compose:
             dim=0,
         ),
     ]
-    # if config.debug:
-    #     tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
 
     return Compose(tfms)
 
@@ -132,9 +116,6 @@ def get_val_transforms(config: dict) -> Compose:
     if "valid" in config.transforms.keys():
         tfm_names = [tn for tn in config.transforms.valid]
         tfms += [get_transform(tn, config) for tn in tfm_names]
-
-    # if config.debug:
-    #     tfms.append(get_transform("DataStatsd", config=config, allow_missing_keys=True))
 
     tfms += [
         get_transform(
