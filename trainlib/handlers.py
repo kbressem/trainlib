@@ -2,7 +2,7 @@ import time
 import ignite
 import yaml
 import requests
-from typing import Dict, List
+from typing import List
 
 import torch
 from monai.utils.type_conversion import convert_to_tensor
@@ -61,7 +61,7 @@ class PushnotificationHandler:
 
     def push(self, message: str, priority: int = -1):
         "Send message to device"
-        r = requests.post(
+        _ = requests.post(
             "https://api.pushover.net/1/messages.json",
             data={
                 "token": self.app_token,

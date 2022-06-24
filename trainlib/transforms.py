@@ -50,7 +50,7 @@ def get_base_transforms(config: dict) -> List[Callable]:
         get_transform("EnsureChannelFirstd", config=config, allow_missing_keys=True),
     ]
     if "base" in config.transforms.keys():
-        tfm_names = [tn for tn in config.transforms.base]
+        tfm_names = list(config.transforms.base)
         tfms += [get_transform(tn, config) for tn in tfm_names]
     return tfms
 
@@ -65,7 +65,7 @@ def get_train_transforms(config: dict) -> Compose:
     tfms = get_base_transforms(config=config)
 
     if "train" in config.transforms.keys():
-        tfm_names = [tn for tn in config.transforms.train]
+        tfm_names = list(config.transforms.train)
         train_tfms = [get_transform(tn, config) for tn in tfm_names]
         tfms += [tfm for tfm in train_tfms if tfm not in tfms]  # add rest
 
@@ -114,7 +114,7 @@ def get_val_transforms(config: dict) -> Compose:
         ),
     ]
     if "valid" in config.transforms.keys():
-        tfm_names = [tn for tn in config.transforms.valid]
+        tfm_names = list(config.transforms.valid)
         tfms += [get_transform(tn, config) for tn in tfm_names]
 
     tfms += [

@@ -40,7 +40,7 @@ def load_config(fn: str = "config.yaml"):
     return config
 
 
-def num_workers(config: dict):
+def num_workers():
     "Get max supported workers -2 for multiprocessing"
 
     n_workers = (

@@ -1,6 +1,5 @@
 import os
 import shutil
-from functools import partial
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
 
@@ -289,21 +288,21 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         try:
             get_model = import_patched(self.config.patch.model, "get_model")
         except AttributeError:
-            get_model = getattr(model, "get_model")
+            get_model = model.get_model
         return get_model(self.config)
 
     def _get_optimizer(self, network: torch.nn.Module) -> torch.optim.Optimizer:
         try:
             get_optimizer = import_patched(self.config.patch.optimizer, "get_optimizer")
         except AttributeError:
-            get_optimizer = getattr(optimizer, "get_optimizer")
+            get_optimizer = optimizer.get_optimizer
         return get_optimizer(network, self.config)
 
     def _get_loss(self) -> Callable:
         try:
             get_loss = import_patched(self.config.patch.loss, "get_loss")
         except AttributeError:
-            get_loss = getattr(loss, "get_loss")
+            get_loss = loss.get_loss
         return get_loss(self.config)
 
     def _prepare_dirs(self) -> None:
@@ -420,7 +419,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         # train the model
         with EmissionsTracker(
             output_dir=self.config.out_dir, log_level="warning"
-        ) as tracker:
+        ) as tracker:  # noqa F841
             super().run()
         # make metrics and losses more accessible
         self.loss = {

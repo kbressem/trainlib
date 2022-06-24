@@ -11,6 +11,7 @@ pretty:
 
 test:
 	flake8
+	cd tests && python -m unittest discover
 
 uninstall:
 	pip install pip-autoremove

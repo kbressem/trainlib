@@ -73,7 +73,9 @@ class DataLoader(MonaiDataLoader):
         label = torch.unbind(label.reshape(b * c, w, h, d), 0)
 
         ListViewer(
-            [image_transform(im) for im in image], [label_transform(im) for im in label], **kwargs
+            [image_transform(im) for im in image],
+            [label_transform(im) for im in label],
+            **kwargs,
         ).show()
 
 
@@ -187,7 +189,7 @@ def segmentation_dataloaders(
         train_loader = DataLoader(
             train_ds,
             batch_size=batch_size,
-            num_workers=num_workers(config=config),
+            num_workers=num_workers(),
             shuffle=True,
         )
         data_loaders.append(train_loader)
@@ -195,14 +197,14 @@ def segmentation_dataloaders(
     if valid:
         val_ds = Dataset(data=val_files, transform=val_transforms)
         val_loader = DataLoader(
-            val_ds, batch_size=1, num_workers=num_workers(config=config), shuffle=False
+            val_ds, batch_size=1, num_workers=num_workers(), shuffle=False
         )
         data_loaders.append(val_loader)
 
     if test:
         test_ds = Dataset(data=test_files, transform=test_transforms)
         test_loader = DataLoader(
-            test_ds, batch_size=1, num_workers=num_workers(config=config), shuffle=False
+            test_ds, batch_size=1, num_workers=num_workers(), shuffle=False
         )
         data_loaders.append(test_loader)
 
