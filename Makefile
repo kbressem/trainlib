@@ -12,6 +12,7 @@ pretty:
 test:
 	flake8
 	cd tests && python -m unittest discover
+	make clean
 
 uninstall:
 	pip install pip-autoremove
@@ -19,7 +20,6 @@ uninstall:
 	pip uninstall pip-autoremove -y
 
 clean:
-	rm -r .ipynb_checkpoints
-	rm -r data/.ipynb_checkpoints
-	rm -r tests/.ipynb_checkpoints
-	rm -r trainlib/.ipynb_checkpoints
+	python3 -Bc "import pathlib; [p.unlink() for p in pathlib.Path('.').rglob('*.py[co]')]"
+	python3 -Bc "import pathlib; [p.rmdir() for p in pathlib.Path('.').rglob('__pycache__')]"
+	python3 -Bc "import pathlib; [p.rmdir() for p in pathlib.Path('.').rglob('.ipynb_checkpoints')]"
