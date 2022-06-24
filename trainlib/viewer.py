@@ -6,6 +6,7 @@ from IPython.display import display
 from ipywidgets import widgets
 from monai.config.type_definitions import NdarrayOrTensor
 from monai.utils import convert_to_numpy
+from typing import Union, List, Tuple
 
 
 def _create_label(text: str) -> ipywidgets.widgets.Label:
@@ -54,7 +55,9 @@ def _create_button(description: str) -> ipywidgets.widgets.Button:
     return button
 
 
-def _create_togglebutton(description: str, value: int, **kwargs) -> ipywidgets.widgets.Button:
+def _create_togglebutton(
+    description: str, value: int, **kwargs
+) -> ipywidgets.widgets.Button:
     "Create toggle button widget"
     button = widgets.ToggleButton(
         description=description,
@@ -96,7 +99,9 @@ class BasicViewer:
         assert x.ndim == 3, f"x.ndim needs to be equal to but is {x.ndim}"
         if y is not None:
             y = np.squeeze(convert_to_numpy(y))
-            assert x.shape == y.shape, f"Shapes of x {x.shape} and y {y.shape} do not match"
+            assert (
+                x.shape == y.shape
+            ), f"Shapes of x {x.shape} and y {y.shape} do not match"
             self.with_mask = True
         else:
             self.with_mask = False
@@ -123,7 +128,13 @@ class BasicViewer:
             image_slice = self.y[im_slice - 1, :, :]
             alpha = np.zeros(image_slice.shape)
             alpha[image_slice > self.background_threshold] = self.mask_alpha
-            ax.imshow(image_slice, cmap="jet", alpha=alpha, vmin=self.y.min(), vmax=self.y.max())
+            ax.imshow(
+                image_slice,
+                cmap="jet",
+                alpha=alpha,
+                vmin=self.y.min(),
+                vmax=self.y.max(),
+            )
         plt.axis("off")
         ax.set_xticks([])
         ax.set_yticks([])
@@ -191,7 +202,9 @@ class BasicViewer:
 
         image_box = widgets.VBox(
             items,
-            layout=widgets.Layout(border="none", margin="10px 5px 0px 0px", padding="5px"),
+            layout=widgets.Layout(
+                border="none", margin="10px 5px 0px 0px", padding="5px"
+            ),
         )
 
         return image_box
@@ -348,7 +361,7 @@ class ListViewer(object):
 
     def __init__(
         self,
-        x: (list, tuple),
+        x: Union[List, Tuple],
         y=None,
         prediction: str = None,
         description: str = None,

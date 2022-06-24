@@ -79,10 +79,6 @@ class DataLoader(MonaiDataLoader):
         ).show()
 
 
-# TODO
-# Work with 3 dataloaders
-
-
 def segmentation_dataloaders(
     config: dict,
     train: bool = None,

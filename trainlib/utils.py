@@ -10,6 +10,9 @@ import monai
 import munch
 import psutil
 import yaml
+import logging
+
+logger = logging.Logger("Trainlib")
 
 USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)
 
@@ -60,7 +63,8 @@ def num_workers():
     max_workers = soft_limit // 256
 
     if max_workers < n_workers:
-        print(
+        logger.info(
+            "[Trainlib INFO] "
             "Will not use all available workers as number of allowed open files is to small"
             "to ensure smooth multiprocessing. Current limits are:\n"
             f"\t soft_limit: {soft_limit}\n"
@@ -91,4 +95,5 @@ def import_patched(path: Union[str, Path], name: str) -> Callable:
         sys.path.append(str(path.parent))
     module = path.name.replace(".py", "")
     patch = importlib.import_module(module)
+    logger.info("[Trainlib INFO] " f"importing patch `{name}` from `{path}`.")
     return getattr(patch, name)

@@ -332,7 +332,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         try:
             from pip._internal.operations import freeze
         except ImportError:  # pip < 10.0
-            from pip.operations import freeze
+            from pip.operations import freeze  # type: ignore
         req = freeze.freeze()
         with open(os.path.join(self.config.run_id, "requirements.txt"), "w+") as f:
             for line in req:

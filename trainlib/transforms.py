@@ -40,6 +40,10 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
         kwargs["mode"] = config.transforms.mode
     if "prob" in allowed_kwargs and "prob" not in kwargs.keys():
         kwargs["prob"] = config.transforms.prob
+    # Finally remove all kwargs, which are not accepted by the function
+    for k in list(kwargs.keys()):
+        if k not in allowed_kwargs:
+            kwargs.pop(k)
     return transform(**kwargs)
 
 
