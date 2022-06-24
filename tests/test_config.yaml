@@ -1,9 +1,8 @@
 data:
   data_dir: ../data/
-  train_csv: test_data.csv
-  valid_csv: test_data.csv
-  test_csv: test_data.csv
-  # col names of the image and label files. Pass multiple names as list
+  train_csv: ../data/test_data.csv
+  valid_csv: ../data/test_data.csv
+  test_csv: ../data/test_data.csv
   image_cols: images
   label_cols: labels
   train: True
