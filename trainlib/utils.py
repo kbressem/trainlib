@@ -1,4 +1,5 @@
 import importlib
+import logging
 import multiprocessing
 import os
 import resource
@@ -10,9 +11,8 @@ import monai
 import munch
 import psutil
 import yaml
-import logging
 
-logger = logging.Logger("Trainlib")
+logger = logging.getLogger(__name__)
 
 USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)
 
@@ -37,18 +37,16 @@ def load_config(fn: str = "config.yaml"):
     if not isinstance(config.data.label_cols, (tuple, list)):
         config.data.label_cols = [config.data.label_cols]
 
-    config.transforms.mode = ("bilinear",) * len(config.data.image_cols) + (
-        "nearest",
-    ) * len(config.data.label_cols)
+    config.transforms.mode = ("bilinear",) * len(config.data.image_cols) + ("nearest",) * len(
+        config.data.label_cols
+    )
     return config
 
 
 def num_workers():
     "Get max supported workers -2 for multiprocessing"
 
-    n_workers = (
-        multiprocessing.cpu_count() - 2
-    )  # leave two workers so machine can still respond
+    n_workers = multiprocessing.cpu_count() - 2  # leave two workers so machine can still respond
 
     # check if we will run into OOM errors because of too many workers
     # In most projects 2-4GB/Worker seems to be save
@@ -64,7 +62,7 @@ def num_workers():
 
     if max_workers < n_workers:
         logger.info(
-            "[Trainlib INFO] "
+            "[INFO:trainlib:] "
             "Will not use all available workers as number of allowed open files is to small"
             "to ensure smooth multiprocessing. Current limits are:\n"
             f"\t soft_limit: {soft_limit}\n"
@@ -95,5 +93,5 @@ def import_patched(path: Union[str, Path], name: str) -> Callable:
         sys.path.append(str(path.parent))
     module = path.name.replace(".py", "")
     patch = importlib.import_module(module)
-    logger.info("[Trainlib INFO] " f"importing patch `{name}` from `{path}`.")
+    logger.info("[INFO:trainlib:] " f"importing patch `{name}` from `{path}`.")
     return getattr(patch, name)

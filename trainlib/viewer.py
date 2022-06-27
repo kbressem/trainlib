@@ -1,3 +1,5 @@
+from typing import List, Tuple, Union
+
 import ipywidgets
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,7 +8,6 @@ from IPython.display import display
 from ipywidgets import widgets
 from monai.config.type_definitions import NdarrayOrTensor
 from monai.utils import convert_to_numpy
-from typing import Union, List, Tuple
 
 
 def _create_label(text: str) -> ipywidgets.widgets.Label:
@@ -55,9 +56,7 @@ def _create_button(description: str) -> ipywidgets.widgets.Button:
     return button
 
 
-def _create_togglebutton(
-    description: str, value: int, **kwargs
-) -> ipywidgets.widgets.Button:
+def _create_togglebutton(description: str, value: int, **kwargs) -> ipywidgets.widgets.Button:
     "Create toggle button widget"
     button = widgets.ToggleButton(
         description=description,
@@ -99,9 +98,7 @@ class BasicViewer:
         assert x.ndim == 3, f"x.ndim needs to be equal to but is {x.ndim}"
         if y is not None:
             y = np.squeeze(convert_to_numpy(y))
-            assert (
-                x.shape == y.shape
-            ), f"Shapes of x {x.shape} and y {y.shape} do not match"
+            assert x.shape == y.shape, f"Shapes of x {x.shape} and y {y.shape} do not match"
             self.with_mask = True
         else:
             self.with_mask = False
@@ -202,9 +199,7 @@ class BasicViewer:
 
         image_box = widgets.VBox(
             items,
-            layout=widgets.Layout(
-                border="none", margin="10px 5px 0px 0px", padding="5px"
-            ),
+            layout=widgets.Layout(border="none", margin="10px 5px 0px 0px", padding="5px"),
         )
 
         return image_box

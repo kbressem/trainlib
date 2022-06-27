@@ -1,6 +1,6 @@
+import tempfile
 import unittest
 
-import tempfile
 from trainlib.utils import import_patched
 
 

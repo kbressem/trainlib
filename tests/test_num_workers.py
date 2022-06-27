@@ -1,5 +1,6 @@
-import unittest
 import multiprocessing
+import unittest
+
 from trainlib.utils import num_workers
 
 

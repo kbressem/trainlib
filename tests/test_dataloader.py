@@ -1,7 +1,9 @@
 import unittest
-from test_utils import TestCase
-from trainlib.data import segmentation_dataloaders
+
 from monai.data import DataLoader
+from test_utils import TestCase
+
+from trainlib.data import segmentation_dataloaders
 
 
 class TestSegmentationDataLoaders(TestCase):

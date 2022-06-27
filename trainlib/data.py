@@ -192,16 +192,12 @@ def segmentation_dataloaders(
 
     if valid:
         val_ds = Dataset(data=val_files, transform=val_transforms)
-        val_loader = DataLoader(
-            val_ds, batch_size=1, num_workers=num_workers(), shuffle=False
-        )
+        val_loader = DataLoader(val_ds, batch_size=1, num_workers=num_workers(), shuffle=False)
         data_loaders.append(val_loader)
 
     if test:
         test_ds = Dataset(data=test_files, transform=test_transforms)
-        test_loader = DataLoader(
-            test_ds, batch_size=1, num_workers=num_workers(), shuffle=False
-        )
+        test_loader = DataLoader(test_ds, batch_size=1, num_workers=num_workers(), shuffle=False)
         data_loaders.append(test_loader)
 
     # if only one dataloader is constructed, return only this dataloader else return a named tuple

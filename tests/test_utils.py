@@ -1,10 +1,21 @@
 import unittest
+
+import ignite
+import torch
+
 from trainlib.utils import load_config
 
 
-class TestCase(unittest.TestCase):
-    "A testcase with preloaded parameters"
+def mock_one_epoch(engine, batch):
+    "Mock of one training iteration. Returns 1 as loss"
+    return 1
 
-    def __init__(self, *args, **kwargs):
-        self.config = load_config("test_config.yaml")
-        super().__init__(*args, **kwargs)
+
+class TestCase(unittest.TestCase):
+    "unittest.TestCase with additional parameters"
+    config = load_config("test_config.yaml")
+    engine = ignite.engine.Engine(mock_one_epoch)
+    image = torch.randn(1, 1, 3, 3, 3)
+    label = torch.stack(
+        [torch.zeros(1, 3, 3, 3), torch.ones(1, 3, 3, 3), torch.full((1, 3, 3, 3), 2)]
+    )

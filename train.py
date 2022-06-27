@@ -1,13 +1,14 @@
 import argparse
 
 import monai
+
 from trainlib.report import ReportGenerator
 from trainlib.trainer import SegmentationTrainer
 from trainlib.utils import load_config
 
 parser = argparse.ArgumentParser(description="Train a segmentation model.")
 parser.add_argument("--config", type=str, required=True, help="path to the config file")
-parser.add_argument("--debug", action='store_true', required=False, help="run in debug mode")
+parser.add_argument("--debug", action="store_true", required=False, help="run in debug mode")
 
 args = parser.parse_args()
 config_fn = args.config

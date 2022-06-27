@@ -1,11 +1,14 @@
+import logging
 import time
-import ignite
-import yaml
-import requests
 from typing import List
 
+import ignite
+import requests
 import torch
+import yaml
 from monai.utils.type_conversion import convert_to_tensor
+
+logger = logging.getLogger(__name__)
 
 
 class PushnotificationHandler:
@@ -19,7 +22,7 @@ class PushnotificationHandler:
 
     def __init__(self, config: dict) -> None:
         self.config = config
-
+        self.logger = logger
         if "pushover_credentials" not in self.config.keys():
             self.logger.warning(
                 "No pushover credentials file submitted, "
@@ -38,7 +41,7 @@ class PushnotificationHandler:
                 credentials = yaml.safe_load(stream)
             self.app_token = credentials["app_token"]
             self.user_key = credentials["user_key"]
-            self.proxies = credentials["proxies"]
+            self.proxies = credentials["proxies"] if "proxies" in credentials else None
             self.enable_notifications = True
 
     def attach(self, engine: ignite.engine.Engine) -> None:
@@ -46,18 +49,11 @@ class PushnotificationHandler:
         Args:
             engine: Ignite Engine, should be an evaluator with metrics.
         """
-        self.logger = engine.logger
         if self.enable_notifications:
             engine.add_event_handler(ignite.engine.Events.STARTED, self.start_training)
-            engine.add_event_handler(
-                ignite.engine.Events.EPOCH_COMPLETED, self.push_metrics
-            )
-            engine.add_event_handler(
-                ignite.engine.Events.TERMINATE, self.push_completed
-            )
-            engine.add_event_handler(
-                ignite.engine.Events.EXCEPTION_RAISED, self.push_exception
-            )
+            engine.add_event_handler(ignite.engine.Events.COMPLETED, self.push_metrics)
+            engine.add_event_handler(ignite.engine.Events.TERMINATE, self.push_terminated)
+            engine.add_event_handler(ignite.engine.Events.EXCEPTION_RAISED, self.push_exception)
 
     def push(self, message: str, priority: int = -1):
         "Send message to device"
@@ -94,7 +90,7 @@ class PushnotificationHandler:
         message += self._get_metrics(engine)
         self.push(message)
 
-    def push_completed(self, engine: ignite.engine.Engine) -> None:
+    def push_terminated(self, engine: ignite.engine.Engine) -> None:
         end_time = time.time()
         seconds = self.start_time - end_time
         minutes = seconds // 60
@@ -121,16 +117,19 @@ class DebugHandler:
     def __init__(self, config: dict) -> None:
         self.config = config
         self.debug_on = self.config.debug
+        self.logger = logger
 
     def attach(self, engine: ignite.engine.Engine) -> None:
         """
         Args:
             engine: Ignite Engine, should be an evaluator with metrics.
         """
-        self.logger = engine.logger
         if self.debug_on:
             engine.add_event_handler(
                 ignite.engine.Events.GET_BATCH_COMPLETED, self.batch_statistics
+            )
+            engine.add_event_handler(
+                ignite.engine.Events.GET_BATCH_COMPLETED, self.check_loss_and_n_classes
             )
 
     def batch_statistics(self, engine: ignite.engine.Engine) -> None:
@@ -152,6 +151,28 @@ class DebugHandler:
 
         self.logger.info("\nBatch Statistics:")
         self.logger.info(message + "\n")
+
+    def check_loss_and_n_classes(self, engine: ignite.engine.Engine):
+        try:
+            n_classes = self.config.model.out_channels
+        except AttributeError:
+            self.logger.info(
+                "`out_channels` not in config.model "
+                "Cannot check if model output fits to loss function"
+            )
+        labels = convert_to_tensor(engine.state.batch["label"])
+        unique = torch.unique(labels)
+        if len(unique) > n_classes:
+            self.logger.error(
+                "There are more unique values in the labels than there are `out_channels`. "
+                f"Found {len(unique)} but expected {n_classes} or less"
+            )
+        if max(unique) > n_classes:
+            self.logger.error(
+                "The maximum value of labels is higher than `out_channels`. "
+                "This will lead to issues with one-hot conversion. "
+                f"Found max value of {max(unique)} but expected {n_classes}"
+            )
 
     def _extract_statisics(self, x: torch.Tensor) -> List:
         shape = tuple(x.shape)

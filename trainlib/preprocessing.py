@@ -14,12 +14,8 @@ def resample_to_ras_and_spacing(
 
     # define the Euler Transformation for Image Rotation
     euler3d = sitk.Euler3DTransform()  # define transform for rotation of the image
-    image_center = (
-        np.array(image.GetSize()) / 2.0
-    )  # set rotation center to image center
-    image_center_as_sitk_point = image.TransformContinuousIndexToPhysicalPoint(
-        image_center
-    )
+    image_center = np.array(image.GetSize()) / 2.0  # set rotation center to image center
+    image_center_as_sitk_point = image.TransformContinuousIndexToPhysicalPoint(image_center)
     euler3d.SetCenter(image_center_as_sitk_point)
 
     # get index of volume edges
@@ -35,13 +31,9 @@ def resample_to_ras_and_spacing(
         (w, h, d),
     ]
     # transform edges to physical points in the global coordinate system
-    extreme_points = [
-        image.TransformIndexToPhysicalPoint(pnt) for pnt in extreme_points
-    ]
+    extreme_points = [image.TransformIndexToPhysicalPoint(pnt) for pnt in extreme_points]
     inv_euler3d = euler3d.GetInverse()
-    extreme_points_transformed = [
-        inv_euler3d.TransformPoint(pnt) for pnt in extreme_points
-    ]
+    extreme_points_transformed = [inv_euler3d.TransformPoint(pnt) for pnt in extreme_points]
 
     # get new min and max coordinates of image edges
     min_x = min(extreme_points_transformed)[0]
@@ -78,9 +70,7 @@ def resample_to_ras_and_spacing(
     return resampled_image
 
 
-def indices_for_patches(
-    patch_edge_length: int, image_edge_length: int
-) -> List[Tuple[int]]:
+def indices_for_patches(patch_edge_length: int, image_edge_length: int) -> List[Tuple[int]]:
     "Calculate indices to split image axis to n supregions of approximate `patch_edge_length`"
     n = math.ceil(image_edge_length / patch_edge_length) + 1
     steps = np.round(np.linspace(0, image_edge_length, n))
@@ -155,9 +145,7 @@ def string_tuple_to_numeric(string_tuple: str) -> Tuple[Union[int, float]]:
     )  # noqa W605
 
 
-def patches_to_image(
-    patches: List[sitk.Image], meta_dict: Optional[dict] = None
-) -> sitk.Image:
+def patches_to_image(patches: List[sitk.Image], meta_dict: Optional[dict] = None) -> sitk.Image:
     """Convert a list of patches back to sitk.Image
 
        O--O  O--O
@@ -177,9 +165,7 @@ def patches_to_image(
     p1 = patches[0]
     ref_size = string_tuple_to_numeric(p1.GetMetaData("Original Size"))
     reference = sitk.Image(ref_size, p1.GetPixelID())
-    reference.SetDirection(
-        string_tuple_to_numeric(p1.GetMetaData("Original Direction"))
-    )
+    reference.SetDirection(string_tuple_to_numeric(p1.GetMetaData("Original Direction")))
     reference.SetSpacing(string_tuple_to_numeric(p1.GetMetaData("Original Spacing")))
     reference.SetOrigin(string_tuple_to_numeric(p1.GetMetaData("Original Origin")))
     image = sum([sitk.Resample(p, reference) for p in patches])
