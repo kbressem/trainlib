@@ -31,9 +31,15 @@ class TestPushNotificationHandler(TestCase):
         self.assertTrue(handler.enable_notifications)
         handler.attach(self.engine)
 
-        self.assertTrue(self.engine.has_event_handler(handler.push_metrics, Events.COMPLETED))
-        self.assertTrue(self.engine.has_event_handler(handler.start_training, Events.STARTED))
-        self.assertTrue(self.engine.has_event_handler(handler.push_terminated, Events.TERMINATE))
+        self.assertTrue(
+            self.engine.has_event_handler(handler.push_metrics, Events.COMPLETED)
+        )
+        self.assertTrue(
+            self.engine.has_event_handler(handler.start_training, Events.STARTED)
+        )
+        self.assertTrue(
+            self.engine.has_event_handler(handler.push_terminated, Events.TERMINATE)
+        )
         self.assertTrue(
             self.engine.has_event_handler(
                 handler.push_exception,
@@ -60,7 +66,9 @@ class TestDebugHandler(TestCase):
         handler = DebugHandler(self.config)
         handler.attach(self.engine)
         self.assertTrue(
-            self.engine.has_event_handler(handler.batch_statistics, Events.GET_BATCH_COMPLETED)
+            self.engine.has_event_handler(
+                handler.batch_statistics, Events.GET_BATCH_COMPLETED
+            )
         )
         self.assertTrue(
             self.engine.has_event_handler(
@@ -80,13 +88,14 @@ class TestDebugHandler(TestCase):
                 in str(cm.output)
             )
 
-        # value of classes do not fit
+        # value of classes do not fit -> will make problems with one-hot conversion
         self.config.model.out_classes = 3
         self.engine.state.batch["label"] *= 2
         with self.assertLogs("trainlib", level="ERROR") as cm:  # noqa F841
             handler.check_loss_and_n_classes(self.engine)
             self.assertTrue(
-                "The maximum value of labels is higher than `out_channels`." in str(cm.output)
+                "The maximum value of labels is higher than `out_channels`."
+                in str(cm.output)
             )
 
 
