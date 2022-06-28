@@ -1,8 +1,18 @@
+import multiprocessing
+import tempfile
 import unittest
 
 import munch
 
-from trainlib.utils import load_config
+from trainlib.utils import import_patched, load_config, num_workers
+
+
+class TestNumWorkers(unittest.TestCase):
+    def test_num_workers(self):
+        "Test that num_workers returns an integer that is smaller than the max. amount of workers"
+        workers = num_workers()
+        self.assertIsInstance(workers, int)
+        self.assertTrue(workers < multiprocessing.cpu_count())
 
 
 class TestLoadConfig(unittest.TestCase):
@@ -31,6 +41,23 @@ class TestLoadConfig(unittest.TestCase):
         config = load_config("test_config.yaml")
         self.assertIn(config.run_id, config.out_dir)
         self.assertIn(config.run_id, config.log_dir)
+
+
+class TestImportPatched(unittest.TestCase):
+    def test_import_patched(self):
+        "Test if function can be sucessfully overwritten by import_patched"
+
+        def return_five():
+            return 5
+
+        self.assertEqual(return_five(), 5)
+        with tempfile.TemporaryDirectory() as tempdir:
+            fn = f"{tempdir}/tmp.py"
+            with open(fn, "w+") as f:
+                f.write("def return_six(): return 6\n\n")
+            return_five = import_patched(fn, "return_six")
+
+        self.assertEqual(return_five(), 6)
 
 
 if __name__ == "__main__":

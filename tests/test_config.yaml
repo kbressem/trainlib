@@ -3,8 +3,8 @@ data:
   train_csv: ../data/test_data.csv
   valid_csv: ../data/test_data.csv
   test_csv: ../data/test_data.csv
-  image_cols: images
-  label_cols: labels
+  image_cols: image
+  label_cols: label
   train: True
   valid: True
   test: False

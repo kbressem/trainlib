@@ -98,6 +98,28 @@ class TestDebugHandler(TestCase):
                 in str(cm.output)
             )
 
+    def test_batch_statistics(self):
+        self.config.debug = True
+        self.config.model.out_classes = 3
+        self._prepare_engine_state()
+        # out_channels and number of classes do not fit
+        handler = DebugHandler(self.config)
+        with self.assertLogs("trainlib", level="INFO") as cm:  # noqa F841
+            handler.batch_statistics(self.engine)
+            keys_or_metrics = [
+                "image",
+                "label",
+                "item",
+                "shape",
+                "mean",
+                "std",
+                "min",
+                "max",
+                "unique val",
+            ]
+            for km in keys_or_metrics:
+                self.assertTrue(km in str(cm.output), f"{km} not in logging message")
+
 
 if __name__ == "__main__":
     unittest.main()
