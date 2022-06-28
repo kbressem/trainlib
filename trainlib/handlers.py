@@ -52,12 +52,8 @@ class PushnotificationHandler:
         if self.enable_notifications:
             engine.add_event_handler(ignite.engine.Events.STARTED, self.start_training)
             engine.add_event_handler(ignite.engine.Events.COMPLETED, self.push_metrics)
-            engine.add_event_handler(
-                ignite.engine.Events.TERMINATE, self.push_terminated
-            )
-            engine.add_event_handler(
-                ignite.engine.Events.EXCEPTION_RAISED, self.push_exception
-            )
+            engine.add_event_handler(ignite.engine.Events.TERMINATE, self.push_terminated)
+            engine.add_event_handler(ignite.engine.Events.EXCEPTION_RAISED, self.push_exception)
 
     def push(self, message: str, priority: int = -1):
         "Send message to device"
