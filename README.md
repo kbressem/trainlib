@@ -92,6 +92,6 @@ How the max. number of open files can be increased is described in: https://supe
 
 ### `RuntimeError: DataLoader worker (pid(s) 6662) exited unexpectedly`
 Most likely because of too much RAM while caching transforms.
-Fix this error by reducing the batch_size, image size or number of transforms.
+Fix this error by reducing the batch_size, image size (introduce downsizing early) or number of transforms.
 
 also see this issue:  https://github.com/pytorch/pytorch/issues/13246
