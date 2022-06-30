@@ -46,6 +46,7 @@ This way, the results can be reproduced later on, even if the library did change
 - possibility to resume from checkpoints
 - Enhanced viewing functions for mecical images inside jupyter notebook
 - Send training updates to mobile phone using [pushover](https://pushover.net/)
+- enhanced debugging features, designed to help catch commong errors early
 
 
 ## ToDo
