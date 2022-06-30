@@ -60,6 +60,10 @@ This way, the results can be reproduced later on, even if the library did change
  - [x] add val loss (tqdm and ~~loss logs~~)
  - [x] add CO2 estimation (https://github.com/mlco2/codecarbon#quickstart-)
  - [ ] add final classification report
+ - [ ] simplify hyperparameter tuning
+ - [ ] add support for 2d segmentation
+ - [ ] add support for 3d classification
+ - [ ] add support for 2d classification
 
 
 
