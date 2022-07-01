@@ -1,4 +1,5 @@
 from typing import Callable, List
+import inspect
 
 import monai
 from monai.transforms import Compose
@@ -14,21 +15,26 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
     except AttributeError:
         if hasattr(monai.transforms, tfm_name):
             transform = getattr(monai.transforms, tfm_name)
-            assert "dictionary" in transform.__module__, f"{tfm_name} is not a dictionary transform"
+            assert (
+                "dictionary" in transform.__module__
+            ), f"{tfm_name} is not a dictionary transform"
         else:
             raise AttributeError(
                 f"{tfm_name} not in `monai.transforms` nor in {config.patch.transforms}"
             )
     # merge config for transform type (train, valid, test) with kwargs
     for k in config.transforms.keys():
-        if isinstance(config.transforms[k], dict) and tfm_name in config.transforms[k].keys():
+        if (
+            isinstance(config.transforms[k], dict)
+            and tfm_name in config.transforms[k].keys()
+        ):
             transform_config = config.transforms[k]
             for k in kwargs.keys():
                 if k in transform_config[tfm_name].keys():
                     transform_config[tfm_name].pop(k)
             kwargs = {**transform_config[tfm_name], **kwargs}
 
-    allowed_kwargs = transform.__init__.__code__.co_varnames
+    allowed_kwargs = inspect.signature(transform.__init__).parameters.keys()
     if "keys" not in kwargs.keys():
         kwargs["keys"] = config.data.image_cols + config.data.label_cols
     if "mode" in allowed_kwargs and "mode" not in kwargs.keys():
@@ -177,7 +183,9 @@ def get_test_transforms(config: dict) -> Compose:
 def get_val_post_transforms(config: dict):
     "Transforms applied to the model output, before metrics are calculated"
     tfms = [
-        get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]),
+        get_transform(
+            "EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]
+        ),
         get_transform(
             "AsDiscreted",
             config=config,
