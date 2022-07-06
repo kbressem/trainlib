@@ -1,6 +1,7 @@
-from asyncio.log import logger
 import io
+import logging
 import os
+import signal
 
 import cv2
 import imageio
@@ -9,8 +10,6 @@ import numpy as np
 import pandas as pd
 import torch
 import tqdm
-import signal
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +30,7 @@ class ReportGenerator:
             self.metric_logs = pd.read_csv(os.path.join(log_dir, "metric_logs.csv"))
         if out_dir:
             self.dice = pd.read_csv(os.path.join(out_dir, "MeanDice_raw.csv"))
-            self.hausdorf = pd.read_csv(
-                os.path.join(out_dir, "HausdorffDistance_raw.csv")
-            )
+            self.hausdorf = pd.read_csv(os.path.join(out_dir, "HausdorffDistance_raw.csv"))
             self.surface = pd.read_csv(os.path.join(out_dir, "SurfaceDistance_raw.csv"))
 
             self.mean_metrics = pd.DataFrame(
@@ -56,9 +53,7 @@ class ReportGenerator:
                 }
             ).transpose()
 
-    def generate_report(
-        self, loss_plot=True, metric_plot=True, boxplots=True, animation=True
-    ):
+    def generate_report(self, loss_plot=True, metric_plot=True, boxplots=True, animation=True):
         fn = os.path.join(self.run_id, "report", "SegmentationReport.md")
         os.makedirs(os.path.join(self.run_id, "report"), exist_ok=True)
         with open(fn, "w+") as f:
@@ -183,10 +178,7 @@ class ReportGenerator:
             return torch.cat(ims, 1)  # create tile
 
     def plot_images(self, fns, slices, cmap="Greys_r", figsize=15, **kwargs):
-        ims = [
-            torch.load(os.path.join(self.out_dir, "preds", fn)).cpu().argmax(0)
-            for fn in fns
-        ]
+        ims = [torch.load(os.path.join(self.out_dir, "preds", fn)).cpu().argmax(0) for fn in fns]
         ims = [self.get_slices(im, slices) for im in ims]
         ims = torch.cat(ims, 0)
         plt.figure(figsize=(figsize, figsize))
@@ -206,7 +198,7 @@ class ReportGenerator:
             os.path.join(self.run_id, "report", "progress.gif"),
             mode="I",
             fps=max(self.train_logs.epoch) // 10,  # make gif 10 seconds
-        ) as writer:  
+        ) as writer:
             for epoch in tqdm.tqdm(list(self.train_logs.epoch.unique())):
                 seg_fn = os.path.join(self.out_dir, "preds", f"pred_epoch_{epoch}.pt")
                 if os.path.exists(seg_fn):
@@ -218,9 +210,7 @@ class ReportGenerator:
 
                 loss_fig = cv2.resize(loss_fig, (im.shape[1], im.shape[0]))
 
-                images = (
-                    torch.cat([im, torch.tensor(loss_fig)], 0).numpy().astype(np.uint8)
-                )
+                images = torch.cat([im, torch.tensor(loss_fig)], 0).numpy().astype(np.uint8)
                 writer.append_data(images)
 
                 loss_plt.clear()
