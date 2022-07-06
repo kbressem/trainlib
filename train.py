@@ -26,6 +26,7 @@ config_fn = args.config
 config = load_config(config_fn)
 if args.debug:
     config.debug = True
+    config.training.max_epochs = 5
 monai.utils.set_determinism(seed=config.seed)
 
 if config.debug:
