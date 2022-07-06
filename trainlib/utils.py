@@ -11,6 +11,7 @@ import monai
 import munch
 import psutil
 import yaml
+import torch 
 
 logger = logging.getLogger(__name__)
 
@@ -55,23 +56,29 @@ def num_workers():
     if max_workers < n_workers:
         n_workers = max_workers
 
-    # # now check for max number of open files allowed on system
-    # soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-    # # giving each worker at least 256 open processes should allow them to run smoothly
-    # max_workers = soft_limit // 256
+    # now check for max number of open files allowed on system
+    soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+    resource.setrlimit(
+            resource.RLIMIT_CORE,
+            (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+    # giving each worker at least 256 open processes should allow them to run smoothly
+    max_workers = soft_limit // 256
 
-    # if max_workers < n_workers:
-    #     logger.info(
-    #         "[INFO:trainlib:] "
-    #         "Will not use all available workers as number of allowed open files is to small"
-    #         "to ensure smooth multiprocessing. Current limits are:\n"
-    #         f"\t soft_limit: {soft_limit}\n"
-    #         f"\t hard_limit: {hard_limit}\n"
-    #         "try increasing the limits to at least {256*n_workers}."
-    #         "See https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past"
-    #         "-4096-ubuntu for more details"
-    #     )
-    #     n_workers = max_workers
+    if max_workers < n_workers:
+  
+        logger.info(
+            "Number of allowed open files is to small, "
+            "which might lead to problems with multiprocessing"
+            "Current limits are:\n"
+            f"\t soft_limit: {soft_limit}\n"
+            f"\t hard_limit: {hard_limit}\n"
+            "try increasing the limits to at least {256*n_workers}."
+            "See https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past"
+             "-4096-ubuntu for more details.\n"
+            "Will use torch.multiprocessing.set_sharing_strategy('file_system') as a workarround."
+        )
+        n_workers = 16 if n_workers > 16 else n_workers
+        torch.multiprocessing.set_sharing_strategy('file_system')
 
     return n_workers
 
