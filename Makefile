@@ -2,7 +2,7 @@ all:
 	@echo "Hi :). Nothing is implemented in here yet."
 
 install:
-	pip install flake8 black[jupyter] isort parameterized
+	pip install flake8 black[jupyter] isort parameterized opencv-python
 	pip install -e .
 
 pretty:

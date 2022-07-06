@@ -43,7 +43,7 @@ print(
     images:     {config.data.image_cols}
     labels:     {config.data.label_cols}
     data_dir    {config.data.data_dir}
-    Workers     {num_workers(config)}
+    Workers     {num_workers()}
     """
 )
 

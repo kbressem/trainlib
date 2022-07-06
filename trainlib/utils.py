@@ -55,23 +55,23 @@ def num_workers():
     if max_workers < n_workers:
         n_workers = max_workers
 
-    # now check for max number of open files allowed on system
-    soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
-    # giving each worker at least 256 open processes should allow them to run smoothly
-    max_workers = soft_limit // 256
+    # # now check for max number of open files allowed on system
+    # soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+    # # giving each worker at least 256 open processes should allow them to run smoothly
+    # max_workers = soft_limit // 256
 
-    if max_workers < n_workers:
-        logger.info(
-            "[INFO:trainlib:] "
-            "Will not use all available workers as number of allowed open files is to small"
-            "to ensure smooth multiprocessing. Current limits are:\n"
-            f"\t soft_limit: {soft_limit}\n"
-            f"\t hard_limit: {hard_limit}\n"
-            "try increasing the limits to at least {256*n_workers}."
-            "See https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past"
-            "-4096-ubuntu for more details"
-        )
-        n_workers = max_workers
+    # if max_workers < n_workers:
+    #     logger.info(
+    #         "[INFO:trainlib:] "
+    #         "Will not use all available workers as number of allowed open files is to small"
+    #         "to ensure smooth multiprocessing. Current limits are:\n"
+    #         f"\t soft_limit: {soft_limit}\n"
+    #         f"\t hard_limit: {hard_limit}\n"
+    #         "try increasing the limits to at least {256*n_workers}."
+    #         "See https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past"
+    #         "-4096-ubuntu for more details"
+    #     )
+    #     n_workers = max_workers
 
     return n_workers
 
@@ -82,7 +82,7 @@ def import_patched(path: Union[str, Path], name: str) -> Callable:
     E.g., if one wants to change the model, instead of editing trainlib/model.py,
     one can provide a path to another model in the config at: config.patch.model
     `trainlib` will then try to first import from the given patched model and, if this
-    failes, fall to import from trainlib/model.py.
+    failes, fall back to import from trainlib/model.py.
 
     Args:
         path: Path to python script, containing the patched functionality.
@@ -93,5 +93,6 @@ def import_patched(path: Union[str, Path], name: str) -> Callable:
         sys.path.append(str(path.parent))
     module = path.name.replace(".py", "")
     patch = importlib.import_module(module)
-    logger.info("[INFO:trainlib:] " f"importing patch `{name}` from `{path}`.")
-    return getattr(patch, name)
+    function_or_class = getattr(patch, name)
+    logger.info(f"importing patch `{name}` from `{path}`.")
+    return function_or_class
