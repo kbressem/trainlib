@@ -35,10 +35,7 @@ class TestPushNotificationHandler(TestCase):
         self.assertTrue(self.engine.has_event_handler(handler.start_training, Events.STARTED))
         self.assertTrue(self.engine.has_event_handler(handler.push_terminated, Events.TERMINATE))
         self.assertTrue(
-            self.engine.has_event_handler(
-                handler.push_exception,
-                Events.EXCEPTION_RAISED,
-            )
+            self.engine.has_event_handler(handler.push_exception, Events.EXCEPTION_RAISED,)
         )
 
 

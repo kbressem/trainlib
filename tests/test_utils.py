@@ -17,10 +17,5 @@ class TestCase(unittest.TestCase):
     engine = ignite.engine.Engine(mock_one_epoch)
     image = torch.randn(1, 1, 3, 3, 3)
     label = torch.stack(
-        [
-            torch.zeros(1, 3, 3, 3),
-            torch.ones(1, 3, 3, 3),
-            torch.full((1, 3, 3, 3), 2),
-        ],
-        1,
+        [torch.zeros(1, 3, 3, 3), torch.ones(1, 3, 3, 3), torch.full((1, 3, 3, 3), 2),], 1,
     )

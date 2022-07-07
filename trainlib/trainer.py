@@ -96,9 +96,7 @@ def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
             output_transform=lambda x: None,
         ),
         StatsHandler(
-            tag_name="pred_logger",
-            epoch_print_logger=pred_logger,
-            output_transform=lambda x: None,
+            tag_name="pred_logger", epoch_print_logger=pred_logger, output_transform=lambda x: None,
         ),
         TensorBoardStatsHandler(
             log_dir=config.log_dir,
@@ -441,12 +439,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self.schedulers += ["FitOneCycle"]
 
     def reduce_lr_on_plateau(
-        self,
-        try_resume_from_checkpoint=True,
-        factor=0.1,
-        patience=10,
-        min_lr=1e-10,
-        verbose=True,
+        self, try_resume_from_checkpoint=True, factor=0.1, patience=10, min_lr=1e-10, verbose=True,
     ) -> None:
         "Reduce learning rate by `factor` every `patience` epochs if kex_metric does not improve"
         assert "ReduceLROnPlateau" not in self.schedulers, "ReduceLROnPlateau already added"

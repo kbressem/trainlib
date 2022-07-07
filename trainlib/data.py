@@ -73,17 +73,12 @@ class DataLoader(MonaiDataLoader):
         label = torch.unbind(label.reshape(b * c, w, h, d), 0)
 
         ListViewer(
-            [image_transform(im) for im in image],
-            [label_transform(im) for im in label],
-            **kwargs,
+            [image_transform(im) for im in image], [label_transform(im) for im in label], **kwargs,
         ).show()
 
 
 def segmentation_dataloaders(
-    config: dict,
-    train: bool = None,
-    valid: bool = None,
-    test: bool = None,
+    config: dict, train: bool = None, valid: bool = None, test: bool = None,
 ):
     """Create segmentation dataloaders
     Args:
@@ -183,10 +178,7 @@ def segmentation_dataloaders(
     if train:
         train_ds = Dataset(data=train_files, transform=train_transforms)
         train_loader = DataLoader(
-            train_ds,
-            batch_size=batch_size,
-            num_workers=num_workers(),
-            shuffle=True,
+            train_ds, batch_size=batch_size, num_workers=num_workers(), shuffle=True,
         )
         data_loaders.append(train_loader)
 
@@ -211,11 +203,7 @@ def segmentation_dataloaders(
             # create str with specification of loader type if train and test are true but
             # valid is false string will be 'train test'
             " ".join(
-                [
-                    "train" if train else "",
-                    "valid" if valid else "",
-                    "test" if test else "",
-                ]
+                ["train" if train else "", "valid" if valid else "", "test" if test else "",]
             ).strip(),
         )
         return DataLoaders(*data_loaders)
