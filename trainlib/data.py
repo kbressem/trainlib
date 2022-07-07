@@ -203,7 +203,7 @@ def segmentation_dataloaders(
             # create str with specification of loader type if train and test are true but
             # valid is false string will be 'train test'
             " ".join(
-                ["train" if train else "", "valid" if valid else "", "test" if test else "",]
+                ["train" if train else "", "valid" if valid else "", "test" if test else ""]
             ).strip(),
         )
         return DataLoaders(*data_loaders)
