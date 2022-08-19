@@ -54,17 +54,17 @@ This way, the results can be reproduced later on, even if the library did change
  - [x] data.py  
  - [x] transforms.py  
  - [x] trainer   
- - [ ] pretrained models  
+ - [ ] Support MONAI bundle
  - [ ] enable ensemble training  
- - [ ] enable multi gpu training (ray vs. monai?)  
+ - [ ] Enable hyper parameter tuning with ray
  - [x] argparse to train.py
  - [x] add val loss (tqdm and ~~loss logs~~)
  - [x] add CO2 estimation (https://github.com/mlco2/codecarbon#quickstart-)
  - [ ] add final classification report
- - [ ] simplify hyperparameter tuning
- - [ ] add support for 2d segmentation
- - [ ] add support for 3d classification
- - [ ] add support for 2d classification
+ - [ ] Rewrite trainer.py to --> base trainer and subclasses segmentation trainer and classification trainer
+  - [ ] add support for 2d segmentation
+  - [ ] add support for 3d classification
+  - [ ] add support for 2d classification
 
 
 
