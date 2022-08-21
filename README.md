@@ -66,6 +66,7 @@ This way, the results can be reproduced later on, even if the library did change
  - [ ] add support for 3d classification
  - [ ] add support for 2d classification
  - [ ] add project set-up (create folders for data/notebooks/patch, ci.yaml, Makefile etc. by running a single terminal command)
+ - [ ] switch from setup.py to .toml 
 
 
 
