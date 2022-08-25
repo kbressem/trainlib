@@ -10,7 +10,7 @@ ndim: 3 # Image dimensions
 seed: 42 # set seed for determinism.
 # data confidurations
 data:
-  data_dir: /paht/where/data/is/stored
+  data_dir: /path/where/data/is/stored
   train_csv: train.csv # should give paths to files, relative to `data_dir`
   valid_csv: valid.csv
   test_csv: test.csv
