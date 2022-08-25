@@ -199,5 +199,5 @@ def get_post_transforms(config: dict):
     if "postprocessing" in config.transforms.keys():
         tfm_names = list(config.transforms.postprocessing)
         tfms += [get_transform(tn, config) for tn in tfm_names]
-        
+
     return Compose(tfms)
