@@ -175,7 +175,7 @@ def get_test_transforms(config: dict) -> Compose:
     return Compose(tfms)
 
 
-def get_val_post_transforms(config: dict):
+def get_post_transforms(config: dict):
     "Transforms applied to the model output, before metrics are calculated"
     tfms = [
         get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]),
@@ -195,4 +195,9 @@ def get_val_post_transforms(config: dict):
             num_classes=config.model.out_channels,
         ),
     ]
+
+    if "postprocessing" in config.transforms.keys():
+        tfm_names = list(config.transforms.postprocessing)
+        tfms += [get_transform(tn, config) for tn in tfm_names]
+        
     return Compose(tfms)

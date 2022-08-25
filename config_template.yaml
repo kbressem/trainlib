@@ -70,6 +70,10 @@ transforms:
       num_samples: 6
       pos: 1
       spatial_size: [96, 96, 96]
+  postprocessing:
+    # add optional post processing transforms.
+    KeepLargesConnectedComponentd:
+      key: pred
 # Monkey-patch different functionalities of trainlib
 # transforms:
 #   Allows to specify custom transforms. Should be based on monai transforms.

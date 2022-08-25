@@ -27,7 +27,7 @@ from monai.utils import convert_to_numpy
 from . import loss, model, optimizer
 from .data import segmentation_dataloaders
 from .handlers import DebugHandler, PushnotificationHandler
-from .transforms import get_val_post_transforms
+from .transforms import get_post_transforms
 from .utils import USE_AMP, import_patched
 
 
@@ -227,7 +227,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         network = self._get_model().to(config.device)
         optimizer = self._get_optimizer(network)
         loss_fn = self._get_loss()
-        val_post_transforms = get_val_post_transforms(config=config)
+        val_post_transforms = get_post_transforms(config=config)
         val_handlers = get_val_handlers(network, config=config)
         self.evaluator = get_evaluator(
             config=config,
