@@ -7,6 +7,7 @@ import requests
 import torch
 import yaml
 from monai.utils.type_conversion import convert_to_tensor
+from ray import tune
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,9 @@ class PushnotificationHandler:
             self.proxies = credentials["proxies"] if "proxies" in credentials else None
             self.enable_notifications = True
 
+        self.key_metric = -1
+        self.improvement = False
+
     def attach(self, engine: ignite.engine.Engine) -> None:
         """
         Args:
@@ -73,6 +77,14 @@ class PushnotificationHandler:
         "Extract metrics from engine.state"
         message = ""
         metric_names = list(engine.state.metrics.keys())
+
+        key_metric = engine.state.metrics[metric_names[0]]
+        if key_metric > self.key_metric:
+            self.improvement = True
+            self.key_metric = key_metric
+        else:
+            self.improvement = False
+
         for mn in metric_names:
             message += f"{mn}: {engine.state.metrics[mn]}\n"
         return message
@@ -88,7 +100,8 @@ class PushnotificationHandler:
         message = f"<b>{self.run_id}:</b>\n"
         message += f"Metrics after epoch {epoch}/{self.number_of_epochs}:\n"
         message += self._get_metrics(engine)
-        self.push(message)
+        if self.improvement:
+            self.push(message)
 
     def push_terminated(self, engine: ignite.engine.Engine) -> None:
         end_time = time.time()
@@ -190,3 +203,24 @@ class DebugHandler:
         items = [str(i)[:18] for i in items]
         format_row = "{:>20}" * (len(items) + 1)
         return "\n" + format_row.format("", *items)
+
+
+class RayTuneHandler:
+    "Send key metric to `ray.tune` for hyperparameter search"
+
+    def __init__(self) -> None:
+        self.logger = logger
+
+    def attach(self, engine: ignite.engine.Engine) -> None:
+        """
+        Args:
+            engine: Ignite Engine, should be an evaluator with metrics.
+        """
+
+        engine.add_event_handler(ignite.engine.Events.COMPLETED, self.report_key_metric)
+
+    def report_key_metric(self, engine: ignite.engine.Engine) -> None:
+        "Send key metric to ray.tune"
+        metric_names = list(engine.state.metrics.keys())
+        key_metric = engine.state.metrics[metric_names[0]]
+        tune.report(key_metric=key_metric)
