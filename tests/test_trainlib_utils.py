@@ -32,7 +32,8 @@ class TestLoadConfig(unittest.TestCase):
         "Test that length of mode paramter is same as numer of image + label cols"
         config = load_config("test_config.yaml")
         self.assertEqual(
-            len(config.transforms.mode), len(config.data.image_cols + config.data.label_cols),
+            len(config.transforms.mode),
+            len(config.data.image_cols + config.data.label_cols),
         )
 
     def test_paths(self):

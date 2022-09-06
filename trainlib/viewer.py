@@ -14,7 +14,8 @@ def _create_label(text: str) -> ipywidgets.widgets.Label:
     "Create label widget"
 
     label = widgets.Label(
-        text, layout=widgets.Layout(width="100%", display="flex", justify_content="center"),
+        text,
+        layout=widgets.Layout(width="100%", display="flex", justify_content="center"),
     )
     return label
 
@@ -125,7 +126,11 @@ class BasicViewer:
             alpha = np.zeros(image_slice.shape)
             alpha[image_slice > self.background_threshold] = self.mask_alpha
             ax.imshow(
-                image_slice, cmap="jet", alpha=alpha, vmin=self.y.min(), vmax=self.y.max(),
+                image_slice,
+                cmap="jet",
+                alpha=alpha,
+                vmin=self.y.min(),
+                vmax=self.y.max(),
             )
         plt.axis("off")
         ax.set_xticks([])
@@ -193,7 +198,8 @@ class BasicViewer:
         items.append(slice_slider)
 
         image_box = widgets.VBox(
-            items, layout=widgets.Layout(border="none", margin="10px 5px 0px 0px", padding="5px"),
+            items,
+            layout=widgets.Layout(border="none", margin="10px 5px 0px 0px", padding="5px"),
         )
 
         return image_box
@@ -381,7 +387,11 @@ class ListViewer(object):
 
             image_list.append(
                 BasicViewer(
-                    x=image, y=mask, prediction=pred, figsize=self.figsize, cmap=self.cmap,
+                    x=image,
+                    y=mask,
+                    prediction=pred,
+                    figsize=self.figsize,
+                    cmap=self.cmap,
                 ).image_box
             )
 

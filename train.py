@@ -13,7 +13,10 @@ from trainlib.utils import load_config, num_workers
 parser = argparse.ArgumentParser(description="Train a segmentation model.")
 parser.add_argument("--config", type=str, required=True, help="path to the config file")
 parser.add_argument(
-    "--delay", type=int, required=False, help="add delay in seconds before training starts",
+    "--delay",
+    type=int,
+    required=False,
+    help="add delay in seconds before training starts",
 )
 parser.add_argument("--debug", action="store_true", required=False, help="run in debug mode")
 args = parser.parse_args()

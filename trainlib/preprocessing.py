@@ -57,7 +57,13 @@ def resample_to_ras_and_spacing(
     ]
 
     resampled_image = sitk.Resample(
-        image, output_size, euler3d, method, output_origin, output_spacing, output_direction,
+        image,
+        output_size,
+        euler3d,
+        method,
+        output_origin,
+        output_spacing,
+        output_direction,
     )
     for k in image.GetMetaDataKeys():
         resampled_image.SetMetaData(k, image.GetMetaData(k))

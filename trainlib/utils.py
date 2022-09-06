@@ -51,7 +51,7 @@ def num_workers():
 
     # check if we will run into OOM errors because of too many workers
     # In most projects 2-4GB/Worker seems to be save
-    available_ram_in_gb = psutil.virtual_memory()[0] / 1024 ** 3
+    available_ram_in_gb = psutil.virtual_memory()[0] / 1024**3
     max_workers = int(available_ram_in_gb // 4)
     if max_workers < n_workers:
         n_workers = max_workers

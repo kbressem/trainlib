@@ -96,7 +96,9 @@ def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
             output_transform=lambda x: None,
         ),
         StatsHandler(
-            tag_name="pred_logger", epoch_print_logger=pred_logger, output_transform=lambda x: None,
+            tag_name="pred_logger",
+            epoch_print_logger=pred_logger,
+            output_transform=lambda x: None,
         ),
         TensorBoardStatsHandler(
             log_dir=config.log_dir,
@@ -384,7 +386,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             )
         self.network.load_state_dict(torch.load(checkpoint))
 
-    def run(self, try_resume_from_checkpoint=True) -> None:
+    def run(self, try_resume_from_checkpoint=False) -> None:
         """Run training, if `try_resume_from_checkpoint` tries to
         load previous checkpoint stored at `self.config.model_dir`
         """
@@ -419,10 +421,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             for k in self.evaluator.state.metric_details.keys()
         }
 
-    # pd.DataFrame(self.metrics).to_csv(f"{self.config.out_dir}/metric_logs.csv")
-    # pd.DataFrame(self.loss).to_csv(f"{self.config.out_dir}/loss_logs.csv")
-
-    def fit_one_cycle(self, try_resume_from_checkpoint=True) -> None:
+    def fit_one_cycle(self) -> None:
         "Run training using one-cycle-policy"
         assert "FitOneCycle" not in self.schedulers, "FitOneCycle already added"
         fit_one_cycle = monai.handlers.LrScheduleHandler(
@@ -439,7 +438,11 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self.schedulers += ["FitOneCycle"]
 
     def reduce_lr_on_plateau(
-        self, try_resume_from_checkpoint=True, factor=0.1, patience=10, min_lr=1e-10, verbose=True,
+        self,
+        factor=0.1,
+        patience=10,
+        min_lr=1e-10,
+        verbose=True,
     ) -> None:
         "Reduce learning rate by `factor` every `patience` epochs if kex_metric does not improve"
         assert "ReduceLROnPlateau" not in self.schedulers, "ReduceLROnPlateau already added"
