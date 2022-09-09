@@ -188,7 +188,9 @@ def get_evaluator(
         val_data_loader=val_data_loader,
         network=network,
         inferer=monai.inferers.SlidingWindowInferer(
-            roi_size=(96, 96, 96), sw_batch_size=2, overlap=0.25
+            roi_size=(96,) * config.ndim, 
+            sw_batch_size=2, 
+            overlap=0.25
         ),
         # postprocessing=val_post_transforms,
         key_val_metric={
