@@ -202,4 +202,3 @@ class DebugHandler:
         items = [str(i)[:18] for i in items]
         format_row = "{:>20}" * (len(items) + 1)
         return "\n" + format_row.format("", *items)
-
