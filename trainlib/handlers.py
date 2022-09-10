@@ -7,7 +7,6 @@ import requests
 import torch
 import yaml
 from monai.utils.type_conversion import convert_to_tensor
-from ray import tune
 
 logger = logging.getLogger(__name__)
 
@@ -204,23 +203,3 @@ class DebugHandler:
         format_row = "{:>20}" * (len(items) + 1)
         return "\n" + format_row.format("", *items)
 
-
-class RayTuneHandler:
-    "Send key metric to `ray.tune` for hyperparameter search"
-
-    def __init__(self) -> None:
-        self.logger = logger
-
-    def attach(self, engine: ignite.engine.Engine) -> None:
-        """
-        Args:
-            engine: Ignite Engine, should be an evaluator with metrics.
-        """
-
-        engine.add_event_handler(ignite.engine.Events.COMPLETED, self.report_key_metric)
-
-    def report_key_metric(self, engine: ignite.engine.Engine) -> None:
-        "Send key metric to ray.tune"
-        metric_names = list(engine.state.metrics.keys())
-        key_metric = engine.state.metrics[metric_names[0]]
-        tune.report(key_metric=key_metric)
