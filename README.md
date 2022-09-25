@@ -35,6 +35,10 @@ With each new training, `trainlib` will copy **everything** to an output directo
 This includes configurations, the complete codebase and all patches.
 This way, the results can be reproduced later on, even if the library did change in the meantime.
 
+## trainer.py
+
+`trainlib` build on Ignite's ["Engine"](https://pytorch.org/ignite/concepts.html).
+
 ## Features
 `trainlib` comes with already implemented:
 - training routine for a U-Net segmentation model for medical images
