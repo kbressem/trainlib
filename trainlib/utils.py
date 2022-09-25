@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)
 
 
-def load_config(fn: str = "config.yaml"):
+def load_config(fn: str = "config.yaml") -> munch.Munch:
     "Load config from YAML and return a serialized dictionary object"
     with open(fn, "r") as stream:
         config = yaml.safe_load(stream)
@@ -44,7 +44,7 @@ def load_config(fn: str = "config.yaml"):
     return config
 
 
-def num_workers():
+def num_workers() -> int:
     "Get max supported workers -2 for multiprocessing"
 
     n_workers = multiprocessing.cpu_count() - 2  # leave two workers so machine can still respond
