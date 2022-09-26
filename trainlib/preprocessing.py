@@ -10,7 +10,7 @@ import SimpleITK as sitk  # noqa N813
 def resample_to_ras_and_spacing(
     image: sitk.Image, spacing: List[int] = None, method: int = sitk.sitkLinear
 ) -> sitk.Image:
-    "resample an image to direction (1,0,0,0,1,0,0,0,1) specified spacing"
+    """Resample an image to direction (1,0,0,0,1,0,0,0,1) specified spacing"""
 
     # define the Euler Transformation for Image Rotation
     euler3d = sitk.Euler3DTransform()  # define transform for rotation of the image
@@ -71,14 +71,14 @@ def resample_to_ras_and_spacing(
 
 
 def indices_for_patches(patch_edge_length: int, image_edge_length: int) -> List[Tuple[int]]:
-    "Calculate indices to split image axis to n supregions of approximate `patch_edge_length`"
+    """Calculate indices to split image axis to n supregions of approximate `patch_edge_length`"""
     n = math.ceil(image_edge_length / patch_edge_length) + 1
     steps = np.round(np.linspace(0, image_edge_length, n))
     return tuple([slice(int(x), int(y), 1) for x, y in zip(steps[:-1], steps[1:])])
 
 
 def store_old_affine(patch: sitk.Image, image: sitk.Image) -> sitk.Image:
-    "Store information about size, spacing, direction and orientation in metadata"
+    """Store information about size, spacing, direction and orientation in metadata"""
     patch.SetMetaData("Original Size", str(image.GetSize()))
     patch.SetMetaData("Original Spacing", str(image.GetSpacing()))
     patch.SetMetaData("Original Direction", str(image.GetDirection()))

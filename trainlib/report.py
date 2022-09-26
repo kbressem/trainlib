@@ -19,7 +19,7 @@ def timeout(signum, frame):
 
 
 class ReportGenerator:
-    "Generate markdown document, summarizing the training"
+    """Generate markdown document, summarizing the training"""
 
     def __init__(self, run_id, out_dir=None, log_dir=None):
 

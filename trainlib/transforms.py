@@ -9,7 +9,7 @@ from .utils import import_patched
 
 
 def get_transform(tfm_name: str, config: dict, **kwargs):
-    "Get transform form monai.transforms with arguments from config"
+    """Get transform form monai.transforms with arguments from config"""
     try:
         transform = import_patched(config.patch.transforms, tfm_name)
     except AttributeError:
@@ -44,7 +44,7 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
 
 
 def get_base_transforms(config: dict) -> List[Callable]:
-    "Transforms applied everytime at the start of the transform pipeline"
+    """Transforms applied everytime at the start of the transform pipeline"""
     tfms = [
         get_transform("LoadImaged", config=config, allow_missing_keys=True),
         get_transform("EnsureChannelFirstd", config=config, allow_missing_keys=True),
@@ -94,7 +94,7 @@ def get_train_transforms(config: dict) -> Compose:
 
 
 def get_val_transforms(config: dict) -> Compose:
-    "Transforms applied only to the valid dataset"
+    """Transforms applied only to the valid dataset"""
     tfms = get_base_transforms(config=config)
     tfms += [
         get_transform("EnsureTyped", config=config),
@@ -137,7 +137,7 @@ def get_val_transforms(config: dict) -> Compose:
 
 
 def get_test_transforms(config: dict) -> Compose:
-    "Transforms applied only to the test dataset"
+    """Transforms applied only to the test dataset"""
     tfms = get_base_transforms(config=config)
     tfms += [
         get_transform("EnsureTyped", config=config, allow_missing_keys=True),
@@ -176,7 +176,7 @@ def get_test_transforms(config: dict) -> Compose:
 
 
 def get_post_transforms(config: dict):
-    "Transforms applied to the model output, before metrics are calculated"
+    """Transforms applied to the model output, before metrics are calculated"""
     tfms = [
         get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]),
         get_transform(

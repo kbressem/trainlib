@@ -1,9 +1,8 @@
-# create a standard UNet
-
 from monai.networks.nets import UNet
 
 
 def get_model(config: dict):
+    """Create a standard UNet"""
     return UNet(
         spatial_dims=config.ndim,
         in_channels=len(config.data.image_cols),

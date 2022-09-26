@@ -35,7 +35,7 @@ def import_dataset(config: dict):
 
 
 class DataLoader(MonaiDataLoader):
-    "overwrite monai DataLoader for enhanced viewing capabilities"
+    """Overwrite monai DataLoader for enhanced viewing capabilities"""
 
     def show_batch(
         self,
