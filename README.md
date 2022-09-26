@@ -37,7 +37,7 @@ This way, the results can be reproduced later on, even if the library did change
 
 ## trainer.py
 
-`trainlib` build on Ignite's ["Engine"](https://pytorch.org/ignite/concepts.html).
+`trainlib` build on MONAIs ["Workflow"](https://docs.monai.io/en/stable/engines.html#workflow) which in turn are based in PyTorch Ignite's ["Engine"](https://pytorch.org/ignite/concepts.html).
 
 ## Features
 `trainlib` comes with already implemented:
