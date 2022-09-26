@@ -11,7 +11,7 @@ from monai.utils import convert_to_numpy
 
 
 def _create_label(text: str) -> ipywidgets.widgets.Label:
-    "Create label widget"
+    """Create label widget"""
 
     label = widgets.Label(
         text,
@@ -31,7 +31,7 @@ def _create_slider(
     slider_type: str = "IntSlider",
     **kwargs,
 ) -> ipywidgets.widgets:
-    "Create slider widget"
+    """Create slider widget"""
 
     slider = getattr(widgets, slider_type)(
         min=slider_min,
@@ -49,7 +49,7 @@ def _create_slider(
 
 
 def _create_button(description: str) -> ipywidgets.widgets.Button:
-    "Create button widget"
+    """Create button widget"""
     button = widgets.Button(
         description=description, layout=widgets.Layout(width="95%", margin="5px 5px")
     )
@@ -57,7 +57,7 @@ def _create_button(description: str) -> ipywidgets.widgets.Button:
 
 
 def _create_togglebutton(description: str, value: int, **kwargs) -> ipywidgets.widgets.Button:
-    "Create toggle button widget"
+    """Create toggle button widget"""
     button = widgets.ToggleButton(
         description=description,
         value=value,
@@ -138,7 +138,7 @@ class BasicViewer:
         plt.show()
 
     def _create_image_box(self, figsize):
-        "Create widget items, order them in item_box and generate view box"
+        """Create widget items, order them in item_box and generate view box"""
         items = []
 
         if self.description:

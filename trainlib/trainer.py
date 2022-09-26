@@ -32,7 +32,7 @@ from .utils import USE_AMP, import_patched
 
 
 def loss_logger(engine):
-    "write loss and lr of each iteration/epoch to file"
+    """Write loss and lr of each iteration/epoch to file"""
     iteration = engine.state.iteration
     epoch = engine.state.epoch
     loss = [o["loss"] for o in engine.state.output]
@@ -47,7 +47,7 @@ def loss_logger(engine):
 
 
 def metric_logger(engine):
-    "write `metrics` after each epoch to file"
+    """Write `metrics` after each epoch to file"""
     if engine.state.epoch > 1:  # only key metric is calcualted in 1st epoch, needs fix
         metric_names = list(engine.state.metrics.keys())
         metrics = [str(engine.state.metrics[mn]) for mn in metric_names]
@@ -60,7 +60,7 @@ def metric_logger(engine):
 
 
 def pred_logger(engine):
-    "save `pred` each time metric improves"
+    """Save `pred` each time metric improves"""
     epoch = engine.state.epoch
     root = os.path.join(engine.config.out_dir, "preds")
     if not os.path.exists(root):
@@ -74,6 +74,7 @@ def pred_logger(engine):
 
 def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
     """Create default handlers for model validation
+
     Args:
         network:
             nn.Module subclass, the model to train
@@ -209,7 +210,7 @@ def get_evaluator(
 
 
 class SegmentationTrainer(monai.engines.SupervisedTrainer):
-    "Default Trainer für supervised segmentation task"
+    """Default Trainer für supervised segmentation task"""
 
     def __init__(
         self,
@@ -298,7 +299,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         return get_loss(self.config)
 
     def _prepare_dirs(self) -> None:
-        "Set up directories for saving logs, outputs and configs of current training session"
+        """Set up directories for saving logs, outputs and configs of current training session"""
         # create run_id, copy config file for reproducibility
         os.makedirs(self.config.run_id, exist_ok=True)
         with open(os.path.join(self.config.run_id, "config.yaml"), "w+") as f:
@@ -309,7 +310,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             shutil.rmtree(self.config.log_dir)
 
     def _backup_library_and_configuration(self) -> None:
-        "copy entire library and patches, making everything 100% reproducible"
+        """Copy entire library and patches, making everything 100% reproducible"""
         dir_name = os.path.dirname(os.path.abspath(__file__))
         shutil.copytree(dir_name, os.path.join(self.config.run_id, "trainlib"), dirs_exist_ok=True)
         os.makedirs(os.path.join(self.config.run_id, "patch"), exist_ok=True)
@@ -329,7 +330,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
                 f.write(line + "\n")
 
     def _add_early_stopping(self) -> None:
-        "Add early stopping handler to `SegmentationTrainer`"
+        """Add early stopping handler to `SegmentationTrainer`"""
         early_stopping = EarlyStopHandler(
             patience=self.config.training.early_stopping_patience,
             min_delta=1e-4,
@@ -373,7 +374,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         eval_loss_handler.attach(self.evaluator, "eval_loss")
 
     def _get_meta_dict(self, batch) -> list:
-        "Get dict of metadata from engine. Needed as `batch_transform`"
+        """Get dict of metadata from engine. Needed as `batch_transform`"""
         image_cols = self.config.data.image_cols
         image_name = image_cols[0] if isinstance(image_cols, list) else image_cols
         key = f"{image_name}_meta_dict"
@@ -424,7 +425,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         }
 
     def fit_one_cycle(self) -> None:
-        "Run training using one-cycle-policy"
+        """Run training using one-cycle-policy"""
         assert "FitOneCycle" not in self.schedulers, "FitOneCycle already added"
         fit_one_cycle = monai.handlers.LrScheduleHandler(
             torch.optim.lr_scheduler.OneCycleLR(
@@ -446,7 +447,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         min_lr=1e-10,
         verbose=True,
     ) -> None:
-        "Reduce learning rate by `factor` every `patience` epochs if kex_metric does not improve"
+        """Reduce learning rate by `factor` every `patience` epochs if kex_metric does not improve"""
         assert "ReduceLROnPlateau" not in self.schedulers, "ReduceLROnPlateau already added"
         reduce_lr_on_plateau = monai.handlers.LrScheduleHandler(
             torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -465,7 +466,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self.schedulers += ["ReduceLROnPlateau"]
 
     def evaluate(self, checkpoint=None, dataloader=None):
-        "Run evaluation, optional on new data with saved checkpoint"
+        """Run evaluation, optional on new data with saved checkpoint"""
         if checkpoint:
             self.load_checkpoint(checkpoint)
         if dataloader:
@@ -483,7 +484,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         overlap=0.75,
         return_input=True,
     ):
-        "Predict on single image or sequence from a single examination"
+        """Predict on single image or sequence from a single examination"""
         if checkpoint:
             self.load_checkpoint(checkpoint)
         dataloader = segmentation_dataloaders(self.config, train=False, valid=False, test=True)
