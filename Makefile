@@ -7,7 +7,7 @@ install:
 
 pretty:
 	isort .
-	black --line-length 100 .
+	black --line-length 120 .
 
 test:
 	flake8
