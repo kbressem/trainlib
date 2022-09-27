@@ -22,9 +22,7 @@ def import_dataset(config: dict):
         if cache_dir.exists():
             shutil.rmtree(str(cache_dir))  # rm previous cache DS
         cache_dir.mkdir(parents=True, exist_ok=True)
-        Dataset = partial(  # noqa N806
-            PersistentDataset, cache_dir=cache_dir  # noqa N806
-        )
+        Dataset = partial(PersistentDataset, cache_dir=config.data.cache_dir)  # noqa N806  # noqa N806
     elif config.data.dataset_type == "cache":
         from monai.data import CacheDataset  # noqa F401
 
@@ -66,8 +64,7 @@ class DataLoader(MonaiDataLoader):
             pass
         else:
             raise NotImplementedError(
-                f"`show_batch` not implemented for label with {label.shape[0]}"
-                f" channels if image has {c} channels"
+                f"`show_batch` not implemented for label with {label.shape[0]}" f" channels if image has {c} channels"
             )
         image = torch.unbind(image.reshape(b * c, w, h, d), 0)
         label = torch.unbind(label.reshape(b * c, w, h, d), 0)
@@ -210,8 +207,6 @@ def segmentation_dataloaders(
             "DataLoaders",
             # create str with specification of loader type if train and test are true but
             # valid is false string will be 'train test'
-            " ".join(
-                ["train" if train else "", "valid" if valid else "", "test" if test else ""]
-            ).strip(),
+            " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),
         )
         return DataLoaders(*data_loaders)

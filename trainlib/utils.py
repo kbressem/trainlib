@@ -38,9 +38,7 @@ def load_config(fn: str = "config.yaml") -> munch.Munch:
     if not isinstance(config.data.label_cols, (tuple, list)):
         config.data.label_cols = [config.data.label_cols]
 
-    config.transforms.mode = ("bilinear",) * len(config.data.image_cols) + ("nearest",) * len(
-        config.data.label_cols
-    )
+    config.transforms.mode = ("bilinear",) * len(config.data.image_cols) + ("nearest",) * len(config.data.label_cols)
     return config
 
 

@@ -137,12 +137,8 @@ class DebugHandler:
             engine: Ignite Engine, should be an evaluator with metrics.
         """
         if self.debug_on:
-            engine.add_event_handler(
-                ignite.engine.Events.GET_BATCH_COMPLETED, self.batch_statistics
-            )
-            engine.add_event_handler(
-                ignite.engine.Events.GET_BATCH_COMPLETED, self.check_loss_and_n_classes
-            )
+            engine.add_event_handler(ignite.engine.Events.GET_BATCH_COMPLETED, self.batch_statistics)
+            engine.add_event_handler(ignite.engine.Events.GET_BATCH_COMPLETED, self.check_loss_and_n_classes)
 
     def batch_statistics(self, engine: ignite.engine.Engine) -> None:
         image_keys = self.config.data.image_cols
@@ -168,10 +164,7 @@ class DebugHandler:
         try:
             n_classes = self.config.model.out_channels
         except AttributeError:
-            self.logger.info(
-                "`out_channels` not in config.model "
-                "Cannot check if model output fits to loss function"
-            )
+            self.logger.info("`out_channels` not in config.model " "Cannot check if model output fits to loss function")
         labels = convert_to_tensor(engine.state.batch["label"])
         unique = torch.unique(labels)
         if len(unique) > n_classes:
