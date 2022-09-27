@@ -12,25 +12,25 @@ logging and visualizations are all implemented in `trainlib` so one can start fo
 on hyperparamter tuning and model architectures. However, to ensure `trainlib` will
 work out-of-the-box it has strong assumptions that must be met.
 
-**Filepaths are in a CSV**  
+**Filepaths are in a CSV**
 Filepaths for images and labels are given in a CSV file, with different CSV files
-for training, validation and testing. Other formats, such as JSON are not supported.  
+for training, validation and testing. Other formats, such as JSON are not supported.
 
-**Everything configurable is in a YAML file**  
+**Everything configurable is in a YAML file**
 Every training is configured in a `config.yaml`.
 This includes filenames for the CSV files, hyperparamters, definition of model architectures,
 loss functions, optimizers, transform pipelines. By strict adherence to his concept, it is
 possible to reproduce results from a training with only the config file.
 
-**Custom code is monkey patched**  
+**Custom code is monkey patched**
 `trainlib` allows to monkey patch transforms, model architectures, loss and optimizers by
 providing a python script with patched code in the config. It will then try to load
-the function form the patch-script first and only fall back to default parameters
+the function from the patch-script first and only fall back to default parameters
 if this fails. For transforms, it will try to load every transform given in the config
 from the patch-script. For model, loss and optimizer a `get_model`/`get_loss`/`get_optimizer`
 function is expected in the patch-script.
 
-**Reproducibility**  
+**Reproducibility**
 With each new training, `trainlib` will copy **everything** to an output directory.
 This includes configurations, the complete codebase and all patches.
 This way, the results can be reproduced later on, even if the library did change in the meantime.
@@ -55,11 +55,11 @@ This way, the results can be reproduced later on, even if the library did change
 
 ## ToDo
 
- - [x] data.py  
- - [x] transforms.py  
- - [x] trainer   
+ - [x] data.py
+ - [x] transforms.py
+ - [x] trainer
  - [ ] Support MONAI bundle
- - [ ] enable ensemble training  
+ - [ ] enable ensemble training
  - [ ] Enable hyper parameter tuning with ray
  - [x] argparse to train.py
  - [x] add val loss (tqdm and ~~loss logs~~)
@@ -70,7 +70,7 @@ This way, the results can be reproduced later on, even if the library did change
  - [ ] add support for 3d classification
  - [ ] add support for 2d classification
  - [ ] add project set-up (create folders for data/notebooks/patch, ci.yaml, Makefile etc. by running a single terminal command)
- - [ ] switch from setup.py to .toml 
+ - [ ] switch from setup.py to .toml
 
 
 
@@ -82,7 +82,7 @@ How the max. number of open files can be increased is described in: https://supe
 
 > ## In Summary
 > If you want to increase the limit shown by ulimit -n, you should:
->     
+>
 > ```bash
 >     Modify /etc/systemd/user.conf and /etc/systemd/system.conf with the following line (this takes care of graphical login):
 >
@@ -93,8 +93,8 @@ How the max. number of open files can be increased is described in: https://supe
 >     <enter your username> hard nofile 65535
 >     <enter your username> soft nofile 65535
 > ```
->  
->  
+>
+>
 >    Reboot your computer for changes to take effect.
 
 ### `RuntimeError: DataLoader worker (pid(s) 6662) exited unexpectedly`

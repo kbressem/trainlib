@@ -9,7 +9,7 @@ from .utils import import_patched
 
 
 def get_transform(tfm_name: str, config: dict, **kwargs):
-    """Get transform form monai.transforms with arguments from config"""
+    """Get transform from monai.transforms with arguments from config"""
     try:
         transform = import_patched(config.patch.transforms, tfm_name)
     except AttributeError:
