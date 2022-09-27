@@ -112,9 +112,7 @@ def image_to_patches(image: sitk.Image, patch_size: List[int]) -> List[sitk.Imag
     indices = []
     for axis, edge_lengths in enumerate(zip(patch_size, image_size)):
         patch_edge_length, image_edge_length = edge_lengths
-        assert (
-            patch_edge_length <= image_edge_length
-        ), f"Patch size exceeds image size at axis {axis}"
+        assert patch_edge_length <= image_edge_length, f"Patch size exceeds image size at axis {axis}"
         indices.append(indices_for_patches(patch_edge_length, image_edge_length))
     indices = list(itertools.product(*indices))
     patches = [store_old_affine(image[idx], image) for idx in indices]
@@ -140,9 +138,7 @@ def string_tuple_to_numeric(string_tuple: str) -> Tuple[Union[int, float]]:
         except ValueError:
             return float(x)
 
-    return tuple(
-        map(_float_or_int, re.sub("\(|\)| ", "", string_tuple).split(","))  # noqa W605
-    )  # noqa W605
+    return tuple(map(_float_or_int, re.sub("\(|\)| ", "", string_tuple).split(",")))  # noqa W605  # noqa W605
 
 
 def patches_to_image(patches: List[sitk.Image], meta_dict: Optional[dict] = None) -> sitk.Image:

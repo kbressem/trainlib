@@ -17,9 +17,7 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
             transform = getattr(monai.transforms, tfm_name)
             assert "dictionary" in transform.__module__, f"{tfm_name} is not a dictionary transform"
         else:
-            raise AttributeError(
-                f"{tfm_name} not in `monai.transforms` nor in {config.patch.transforms}"
-            )
+            raise AttributeError(f"{tfm_name} not in `monai.transforms` nor in {config.patch.transforms}")
     # merge config for transform type (train, valid, test) with kwargs
     for k in config.transforms.keys():
         if isinstance(config.transforms[k], dict) and tfm_name in config.transforms[k].keys():
