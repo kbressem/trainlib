@@ -55,7 +55,7 @@ class ReportGenerator:
 
     def generate_report(self, loss_plot=True, metric_plot=True, boxplots=True, animation=True):
         fn = self.run_id / "report" / "SegmentationReport.md"
-        (self.run_id / "report").mkdir(exist_ok=True)
+        (self.run_id / "report").mkdir(parents=True, exist_ok=True)
         with open(fn, "w+") as f:
             f.write("# Segmentation Report\n\n")
 

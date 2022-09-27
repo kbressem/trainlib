@@ -21,7 +21,7 @@ def import_dataset(config: dict):
         cache_dir = Path(config.data.cache_dir)
         if cache_dir.exists():
             shutil.rmtree(str(cache_dir))  # rm previous cache DS
-        cache_dir.mkdir(exist_ok=True)
+        cache_dir.mkdir(parents=True, exist_ok=True)
         Dataset = partial(  # noqa N806
             PersistentDataset, cache_dir=cache_dir  # noqa N806
         )
