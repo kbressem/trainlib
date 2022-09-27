@@ -1,6 +1,6 @@
 """Create dataloaders from csv file"""
 
-import os
+from pathlib import Path
 import shutil
 from collections import namedtuple
 from functools import partial
@@ -17,10 +17,10 @@ from .utils import num_workers
 def import_dataset(config: dict):
     if config.data.dataset_type == "persistent":
         from monai.data import PersistentDataset
-
-        if os.path.exists(config.data.cache_dir):
-            shutil.rmtree(config.data.cache_dir)  # rm previous cache DS
-        os.makedirs(config.data.cache_dir, exist_ok=True)
+        cache_dir = Path(config.data.cache_dir)
+        if cache_dir.exists():
+            shutil.rmtree(str(cache_dir))  # rm previous cache DS
+        cache_dir.mkdir(parents=True, exist_ok=True)
         Dataset = partial(PersistentDataset, cache_dir=config.data.cache_dir)  # noqa N806  # noqa N806
     elif config.data.dataset_type == "cache":
         from monai.data import CacheDataset  # noqa F401

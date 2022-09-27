@@ -39,8 +39,8 @@ class TestLoadConfig(unittest.TestCase):
     def test_paths(self):
         "Test that paths for output are specified correctly"
         config = load_config("test_config.yaml")
-        self.assertIn(config.run_id, config.out_dir)
-        self.assertIn(config.run_id, config.log_dir)
+        self.assertIn(str(config.run_id), str(config.out_dir))
+        self.assertIn(str(config.run_id), str(config.log_dir))
 
 
 class TestImportPatched(unittest.TestCase):

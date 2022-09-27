@@ -1,6 +1,6 @@
 import io
 import logging
-import os
+from pathlib import Path
 import signal
 
 import cv2
@@ -23,15 +23,15 @@ class ReportGenerator:
 
     def __init__(self, run_id, out_dir=None, log_dir=None):
 
-        self.run_id, self.out_dir, self.log_dir = run_id, out_dir, log_dir
+        self.run_id, self.out_dir, self.log_dir = Path(run_id), Path(out_dir), Path(log_dir)
 
-        if log_dir:
-            self.train_logs = pd.read_csv(os.path.join(log_dir, "train_logs.csv"))
-            self.metric_logs = pd.read_csv(os.path.join(log_dir, "metric_logs.csv"))
-        if out_dir:
-            self.dice = pd.read_csv(os.path.join(out_dir, "MeanDice_raw.csv"))
-            self.hausdorf = pd.read_csv(os.path.join(out_dir, "HausdorffDistance_raw.csv"))
-            self.surface = pd.read_csv(os.path.join(out_dir, "SurfaceDistance_raw.csv"))
+        if self.log_dir:
+            self.train_logs = pd.read_csv(self.log_dir / "train_logs.csv")
+            self.metric_logs = pd.read_csv(self.log_dir / "metric_logs.csv")
+        if self.out_dir:
+            self.dice = pd.read_csv(self.out_dir / "MeanDice_raw.csv")
+            self.hausdorf = pd.read_csv(self.out_dir / "HausdorffDistance_raw.csv")
+            self.surface = pd.read_csv(self.out_dir / "SurfaceDistance_raw.csv")
 
             self.mean_metrics = pd.DataFrame(
                 {
@@ -46,14 +46,14 @@ class ReportGenerator:
             ).transpose()
 
     def generate_report(self, loss_plot=True, metric_plot=True, boxplots=True, animation=True):
-        fn = os.path.join(self.run_id, "report", "SegmentationReport.md")
-        os.makedirs(os.path.join(self.run_id, "report"), exist_ok=True)
+        fn = self.run_id / "report" / "SegmentationReport.md"
+        (self.run_id / "report").mkdir(parents=True, exist_ok=True)
         with open(fn, "w+") as f:
             f.write("# Segmentation Report\n\n")
 
         if loss_plot:
             fig = self.plot_loss(self.train_logs, self.metric_logs)
-            plt.savefig(os.path.join(self.run_id, "report", "loss_and_lr.png"), dpi=150)
+            plt.savefig(self.run_id / "report" / "loss_and_lr.png", dpi=150)
 
             with open(fn, "a") as f:
                 f.write("## Loss, LR-Schedule and Key Metric\n")
@@ -78,7 +78,7 @@ class ReportGenerator:
             plt.xlabel("epoch")
             plt.plot(self.metric_logs.index, self.metric_logs.SurfaceDistance)
 
-            plt.savefig(os.path.join(self.run_id, "report", "metrics.png"), dpi=150)
+            plt.savefig(self.run_id / "report" / "metrics.png", dpi=150)
             fig.clear()
             plt.close()
 
@@ -103,7 +103,7 @@ class ReportGenerator:
             plt.title("Surface Distance")
             plt.xlabel("class")
             plt.boxplot(self.surface[[col for col in self.surface if col.startswith("class")]])
-            plt.savefig(os.path.join(self.run_id, "report", "boxplots.png"), dpi=150)
+            plt.savefig(self.run_id / "report" / "boxplots.png", dpi=150)
             fig.clear()
             plt.close()
 
@@ -170,14 +170,14 @@ class ReportGenerator:
             return torch.cat(ims, 1)  # create tile
 
     def plot_images(self, fns, slices, cmap="Greys_r", figsize=15, **kwargs):
-        ims = [torch.load(os.path.join(self.out_dir, "preds", fn)).cpu().argmax(0) for fn in fns]
+        ims = [torch.load(self.out_dir / "preds" / fn).cpu().argmax(0) for fn in fns]
         ims = [self.get_slices(im, slices) for im in ims]
         ims = torch.cat(ims, 0)
         plt.figure(figsize=(figsize, figsize))
         plt.imshow(ims, cmap=cmap, **kwargs)
         plt.axis("off")
 
-    def load_segmentation_image(self, fn):
+    def load_segmentation_image(self, fn: Path):
         im = torch.load(fn).cpu().unsqueeze(0)
         im = torch.nn.functional.interpolate(im, (224, 224, 112))
         im = im.argmax(1).squeeze()
@@ -187,13 +187,13 @@ class ReportGenerator:
 
     def generate_gif(self):
         with imageio.get_writer(
-            os.path.join(self.run_id, "report", "progress.gif"),
+            self.run_id / "report" / "progress.gif",
             mode="I",
             fps=max(self.train_logs.epoch) // 10,  # make gif 10 seconds
         ) as writer:
             for epoch in tqdm.tqdm(list(self.train_logs.epoch.unique())):
-                seg_fn = os.path.join(self.out_dir, "preds", f"pred_epoch_{epoch}.pt")
-                if os.path.exists(seg_fn):
+                seg_fn = self.out_dir / "preds" / f"pred_epoch_{epoch}.pt"
+                if seg_fn.exists():
                     im = self.load_segmentation_image(seg_fn)
 
                 plt_train_logs = self.train_logs[self.train_logs.epoch <= epoch]
