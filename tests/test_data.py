@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import tempfile
 import unittest
 
@@ -15,7 +15,7 @@ class TestDatasetInit(TestCase):
         self.config.data.dataset_type = "iterative"
         dataset = import_dataset(self.config)(data=[], transform=[])
         self.assertIsInstance(dataset, monai.data.Dataset)
-        self.assertFalse(os.path.exists(self.config.data.cache_dir))
+        self.assertFalse(Path(self.config.data.cache_dir).exists())
 
     def test_init_persistent_dataset(self):
         "Test that dataset is of correct instance and cache dir is created"
@@ -23,7 +23,7 @@ class TestDatasetInit(TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             self.config.data.cache_dir = f"{tempdir}/.cache"
             dataset = import_dataset(self.config)(data=[], transform=[])
-            self.assertTrue(os.path.exists(self.config.data.cache_dir))
+            self.assertTrue(Path(self.config.data.cache_dir).exists())
         self.assertIsInstance(dataset, monai.data.PersistentDataset)
 
 

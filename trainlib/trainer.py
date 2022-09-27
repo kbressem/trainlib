@@ -1,4 +1,3 @@
-import os
 import shutil
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
@@ -38,8 +37,8 @@ def loss_logger(engine):
     loss = [o["loss"] for o in engine.state.output]
     loss = sum(loss) / len(loss)
     lr = engine.optimizer.param_groups[0]["lr"]
-    log_file = os.path.join(engine.config.log_dir, "train_logs.csv")
-    if not os.path.exists(log_file):
+    log_file = Path(engine.config.log_dir) / "train_logs.csv"
+    if not log_file.exists():
         with open(log_file, "w+") as f:
             f.write("iteration,epoch,loss,lr\n")
     with open(log_file, "a") as f:
@@ -51,8 +50,8 @@ def metric_logger(engine):
     if engine.state.epoch > 1:  # only key metric is calcualted in 1st epoch, needs fix
         metric_names = list(engine.state.metrics.keys())
         metrics = [str(engine.state.metrics[mn]) for mn in metric_names]
-        log_file = os.path.join(engine.config.log_dir, "metric_logs.csv")
-        if not os.path.exists(log_file):
+        log_file = Path(engine.config.log_dir) / "metric_logs.csv"
+        if not log_file.exists():
             with open(log_file, "w+") as f:
                 f.write(",".join(metric_names) + "\n")
         with open(log_file, "a") as f:
@@ -62,14 +61,14 @@ def metric_logger(engine):
 def pred_logger(engine):
     """Save `pred` each time metric improves"""
     epoch = engine.state.epoch
-    root = os.path.join(engine.config.out_dir, "preds")
-    if not os.path.exists(root):
-        os.makedirs(root)
-        torch.save(engine.state.output[0]["label"], os.path.join(root, "label.pt"))
-        torch.save(engine.state.output[0]["image"], os.path.join(root, "image.pt"))
+    root = Path(engine.config.out_dir) / "preds"
+    if not root.exists():
+        root.makedir()
+        torch.save(engine.state.output[0]["label"], root / "label.pt")
+        torch.save(engine.state.output[0]["image"], root / "image.pt")
 
     if epoch == engine.state.best_metric_epoch:
-        torch.save(engine.state.output[0]["pred"], os.path.join(root, f"pred_epoch_{epoch}.pt"))
+        torch.save(engine.state.output[0]["pred"], root / f"pred_epoch_{epoch}.pt")
 
 
 def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
@@ -301,22 +300,24 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
     def _prepare_dirs(self) -> None:
         """Set up directories for saving logs, outputs and configs of current training session"""
         # create run_id, copy config file for reproducibility
-        os.makedirs(self.config.run_id, exist_ok=True)
-        with open(os.path.join(self.config.run_id, "config.yaml"), "w+") as f:
+        run_id = Path(self.config.run_id)
+        run_id.makedir(exist_ok=True)
+        with open(run_id / "config.yaml", "w+") as f:
             f.write(yaml.safe_dump(self.config))
 
         # delete old log_dir
-        if os.path.exists(self.config.log_dir):
+        if Path(self.config.log_dir).exists():
             shutil.rmtree(self.config.log_dir)
 
     def _backup_library_and_configuration(self) -> None:
         """Copy entire library and patches, making everything 100% reproducible"""
-        dir_name = os.path.dirname(os.path.abspath(__file__))
-        shutil.copytree(dir_name, os.path.join(self.config.run_id, "trainlib"), dirs_exist_ok=True)
-        os.makedirs(os.path.join(self.config.run_id, "patch"), exist_ok=True)
+        dir_name = Path(__file__).absolute().parent
+        run_id = Path(self.config.run_id)
+        shutil.copytree(dir_name, str(run_id / "trainlib"), dirs_exist_ok=True)
+        (run_id / "patch").makedir(exist_ok=True)
         for k in self.config.patch.keys():
-            fn = os.path.join(self.config.run_id, "patch", k + ".py")
-            shutil.copy(self.config.patch[k], fn)
+            fn = run_id / "patch" / f"{k}.py"
+            shutil.copy(self.config.patch[k], str(fn))
 
         # also save all modules and versions in current environment
         # OPTIMIZE: save only modules relevant for this training
@@ -325,7 +326,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         except ImportError:  # pip < 10.0
             from pip.operations import freeze  # type: ignore
         req = freeze.freeze()
-        with open(os.path.join(self.config.run_id, "requirements.txt"), "w+") as f:
+        with open(run_id / "requirements.txt", "w+") as f:
             for line in req:
                 f.write(line + "\n")
 
@@ -383,21 +384,20 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
     def load_checkpoint(self, checkpoint=None):
         if not checkpoint:
             # get name of last checkpoint
-            checkpoint = os.path.join(
-                self.config.model_dir,
-                f"network_{self.config.run_id.split('/')[-1]}_key_metric={self.evaluator.state.best_metric:.4f}.pt",  # noqa E501
-            )
+            fname = f"network_{self.config.run_id.split('/')[-1]}_key_metric={self.evaluator.state.best_metric:.4f}.pt"
+            checkpoint = Path(self.config.model_dir) / fname
         self.network.load_state_dict(torch.load(checkpoint))
 
     def run(self, try_resume_from_checkpoint=False) -> None:
         """Run training, if `try_resume_from_checkpoint` tries to
         load previous checkpoint stored at `self.config.model_dir`
         """
+        model_dir = Path(self.config.model_dir)
 
         if try_resume_from_checkpoint:
             checkpoints = [
-                os.path.join(self.config.model_dir, checkpoint_name)
-                for checkpoint_name in os.listdir(self.config.model_dir)
+                model_dir / checkpoint_name
+                for checkpoint_name in model_dir.glob('*')
                 if self.config.run_id.split("/")[-1] in checkpoint_name
             ]
             try:

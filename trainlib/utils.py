@@ -1,7 +1,6 @@
 import importlib
 import logging
 import multiprocessing
-import os
 import resource
 import sys
 from pathlib import Path
@@ -26,12 +25,13 @@ def load_config(fn: str = "config.yaml") -> munch.Munch:
 
     if not config.overwrite:
         i = 1
-        while os.path.exists(config.run_id + f"_{i}"):
+        while (Path(config.run_id) / f"_{i}").exists():
             i += 1
         config.run_id += f"_{i}"
 
-    config.out_dir = os.path.join(config.run_id, config.out_dir)
-    config.log_dir = os.path.join(config.run_id, config.log_dir)
+    run_id = Path(config.run_id)
+    config.out_dir = run_id / config.out_dir
+    config.log_dir = run_id / config.log_dir
 
     if not isinstance(config.data.image_cols, (tuple, list)):
         config.data.image_cols = [config.data.image_cols]
