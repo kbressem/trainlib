@@ -59,14 +59,8 @@ class TestDebugHandler(TestCase):
         self.config.debug = True
         handler = DebugHandler(self.config)
         handler.attach(self.engine)
-        self.assertTrue(
-            self.engine.has_event_handler(handler.batch_statistics, Events.GET_BATCH_COMPLETED)
-        )
-        self.assertTrue(
-            self.engine.has_event_handler(
-                handler.check_loss_and_n_classes, Events.GET_BATCH_COMPLETED
-            )
-        )
+        self.assertTrue(self.engine.has_event_handler(handler.batch_statistics, Events.GET_BATCH_COMPLETED))
+        self.assertTrue(self.engine.has_event_handler(handler.check_loss_and_n_classes, Events.GET_BATCH_COMPLETED))
 
     def test_check_loss_and_n_classes(self):
         self.config.debug = True
@@ -76,8 +70,7 @@ class TestDebugHandler(TestCase):
         with self.assertLogs("trainlib", level="ERROR") as cm:  # noqa F841
             handler.check_loss_and_n_classes(self.engine)
             self.assertTrue(
-                "There are more unique values in the labels than there are `out_channels`."
-                in str(cm.output)
+                "There are more unique values in the labels than there are `out_channels`." in str(cm.output)
             )
 
         # value of classes do not fit -> will make problems with one-hot conversion
@@ -85,9 +78,7 @@ class TestDebugHandler(TestCase):
         self.engine.state.batch["label"] *= 2
         with self.assertLogs("trainlib", level="ERROR") as cm:  # noqa F841
             handler.check_loss_and_n_classes(self.engine)
-            self.assertTrue(
-                "The maximum value of labels is higher than `out_channels`." in str(cm.output)
-            )
+            self.assertTrue("The maximum value of labels is higher than `out_channels`." in str(cm.output))
 
     def test_batch_statistics(self):
         self.config.debug = True

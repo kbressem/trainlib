@@ -35,20 +35,12 @@ class ReportGenerator:
 
             self.mean_metrics = pd.DataFrame(
                 {
-                    "mean_dice": [
-                        round(np.mean(self.dice[col]), 3)
-                        for col in self.dice
-                        if col.startswith("class")
-                    ],
+                    "mean_dice": [round(np.mean(self.dice[col]), 3) for col in self.dice if col.startswith("class")],
                     "mean_hausdorf": [
-                        round(np.mean(self.hausdorf[col]), 3)
-                        for col in self.hausdorf
-                        if col.startswith("class")
+                        round(np.mean(self.hausdorf[col]), 3) for col in self.hausdorf if col.startswith("class")
                     ],
                     "mean_surface": [
-                        round(np.mean(self.surface[col]), 3)
-                        for col in self.surface
-                        if col.startswith("class")
+                        round(np.mean(self.surface[col]), 3) for col in self.surface if col.startswith("class")
                     ],
                 }
             ).transpose()

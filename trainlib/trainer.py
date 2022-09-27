@@ -188,11 +188,7 @@ def get_evaluator(
         device=device,
         val_data_loader=val_data_loader,
         network=network,
-        inferer=monai.inferers.SlidingWindowInferer(
-            roi_size=(96,) * config.ndim,
-            sw_batch_size=2,
-            overlap=0.25
-        ),
+        inferer=monai.inferers.SlidingWindowInferer(roi_size=(96,) * config.ndim, sw_batch_size=2, overlap=0.25),
         # postprocessing=val_post_transforms,
         key_val_metric={
             "val_mean_dice": MeanDice(
@@ -225,9 +221,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self._backup_library_and_configuration()
         self.config.device = torch.device(self.config.device)
 
-        train_loader, val_loader = segmentation_dataloaders(
-            config=config, train=True, valid=True, test=False
-        )
+        train_loader, val_loader = segmentation_dataloaders(config=config, train=True, valid=True, test=False)
 
         network = self._get_model().to(config.device)
         optimizer = self._get_optimizer(network)
@@ -348,9 +342,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         evaluator_pbar = ProgressBar(colour="green")
         trainer_pbar.attach(
             self,
-            output_transform=lambda output: {
-                "loss": torch.tensor([x["loss"] for x in output]).mean()
-            },
+            output_transform=lambda output: {"loss": torch.tensor([x["loss"] for x in output]).mean()},
         )
         evaluator_pbar.attach(self.evaluator)
 
@@ -408,9 +400,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
                 pass  # train from scratch
 
         # train the model
-        with EmissionsTracker(
-            output_dir=self.config.out_dir, log_level="warning"
-        ) as tracker:  # noqa F841
+        with EmissionsTracker(output_dir=self.config.out_dir, log_level="warning") as tracker:  # noqa F841
             super().run()
         # make metrics and losses more accessible
         self.loss = {
@@ -420,8 +410,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         }
 
         self.metrics = {
-            k: [item[1] for item in self.metric_logger.metrics[k]]
-            for k in self.evaluator.state.metric_details.keys()
+            k: [item[1] for item in self.metric_logger.metrics[k]] for k in self.evaluator.state.metric_details.keys()
         }
 
     def fit_one_cycle(self) -> None:
@@ -492,9 +481,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             file = [file]
         images = {col_name: f for col_name, f in zip(self.config.data.image_cols, file)}
         dataloader.dataset.data = [images]
-        inferer = monai.inferers.SlidingWindowInferer(
-            roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap
-        )
+        inferer = monai.inferers.SlidingWindowInferer(roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap)
         self.network.eval()
         with torch.no_grad():
             for batch in dataloader:

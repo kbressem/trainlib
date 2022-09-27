@@ -50,9 +50,7 @@ def _create_slider(
 
 def _create_button(description: str) -> ipywidgets.widgets.Button:
     """Create button widget"""
-    button = widgets.Button(
-        description=description, layout=widgets.Layout(width="95%", margin="5px 5px")
-    )
+    button = widgets.Button(description=description, layout=widgets.Layout(width="95%", margin="5px 5px"))
     return button
 
 
@@ -148,9 +146,7 @@ class BasicViewer:
             label = f"{self.y} | {self.prediction}" if self.prediction else self.y
             if self.prediction:
                 font_color = "green" if self.y == self.prediction else "red"
-                y_label = _create_label(
-                    r"\(\color{" + font_color + "} {" + label + "}\)"  # noqa W605
-                )
+                y_label = _create_label(r"\(\color{" + font_color + "} {" + label + "}\)")  # noqa W605
             else:
                 y_label = _create_label(label)
         else:
@@ -169,9 +165,7 @@ class BasicViewer:
             slider_min=self.x.min(),
             slider_max=self.x.max(),
             value=[self.x.min(), self.x.max()],
-            slider_type="FloatRangeSlider"
-            if issubclass(self.x.dtype.type, np.floating)
-            else "IntRangeSlider",
+            slider_type="FloatRangeSlider" if issubclass(self.x.dtype.type, np.floating) else "IntRangeSlider",
             step=0.01 if issubclass(self.x.dtype.type, np.floating) else 1,
             readout=True,
         )
@@ -293,9 +287,7 @@ class DicomExplorer(BasicViewer):
             slider_max=self.x.max(),
             value=[self.x.min(), self.x.max()],
             continuous_update=False,
-            slider_type="FloatRangeSlider"
-            if issubclass(self.x.dtype.type, np.floating)
-            else "IntRangeSlider",
+            slider_type="FloatRangeSlider" if issubclass(self.x.dtype.type, np.floating) else "IntRangeSlider",
             step=0.01 if issubclass(self.x.dtype.type, np.floating) else 1,
         )
 
@@ -314,18 +306,14 @@ class DicomExplorer(BasicViewer):
         if self.y is not None:
             slice_slider = widgets.HBox([slice_slider, toggle_mask_button])
 
-        hist_output = widgets.interactive_output(
-            f=self._plot_hist, controls={"px_range": range_slider}
-        )
+        hist_output = widgets.interactive_output(f=self._plot_hist, controls={"px_range": range_slider})
 
         hist_output.layout.height = f"{self.figsize[0]/1.2}in"  # suppress flickering
         hist_output.layout.width = f"{self.figsize[1]/1.2}in"  # suppress flickering
 
         toggle_mask_button = _create_togglebutton("Show Mask", True)
 
-        table_output = widgets.interactive_output(
-            f=self._image_summary, controls={"px_range": range_slider}
-        )
+        table_output = widgets.interactive_output(f=self._image_summary, controls={"px_range": range_slider})
 
         table_box = widgets.VBox([table_output], layout=self.vbox_layout)
 
