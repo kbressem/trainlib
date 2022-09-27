@@ -1,6 +1,5 @@
-# create dataloaders form csv file
+"""Create dataloaders from csv file"""
 
-# ---------- imports ----------
 from pathlib import Path
 import shutil
 from collections import namedtuple

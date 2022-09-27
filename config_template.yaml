@@ -56,10 +56,10 @@ training:
 # valid: only applied to valid data
 transforms:
   prob: 0.1
-  mode: [bilinear, nearest]
   base:
     Spacingd:
       pixdim: [1, 1, 1]
+      mode: [bilinear, nearest]
   train:
     CustomPatchedTransform:
       arg1: some_value

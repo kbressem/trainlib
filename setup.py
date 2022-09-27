@@ -10,7 +10,6 @@ config = ConfigParser(delimiters=["="])
 config.read("setup.cfg")
 cfg = config["SETUP"]
 
-py_versions = "3.7 3.8 3.9".split()
 min_python = cfg["min_python"]
 
 requirements = ["pip", "packaging"]

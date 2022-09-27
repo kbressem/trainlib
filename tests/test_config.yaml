@@ -46,6 +46,6 @@ training:
 transforms:
   Spacingd:
     pixdim: [2, 2, 2]
-  mode: [bilinear, nearest]
+    mode: [bilinear, nearest]
   orientation: RAS
   prob: 0.1
