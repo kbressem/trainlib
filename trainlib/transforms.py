@@ -32,8 +32,6 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
     allowed_kwargs = inspect.signature(transform.__init__).parameters.keys()
     if "keys" not in kwargs.keys():
         kwargs["keys"] = config.data.image_cols + config.data.label_cols
-    if "mode" in allowed_kwargs and "mode" not in kwargs.keys():
-        kwargs["mode"] = config.transforms.mode
     if "prob" in allowed_kwargs and "prob" not in kwargs.keys():
         kwargs["prob"] = config.transforms.prob
     # Finally remove all kwargs, which are not accepted by the function
