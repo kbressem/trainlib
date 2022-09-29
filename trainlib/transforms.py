@@ -65,7 +65,7 @@ def get_train_transforms(config: dict) -> Compose:
         train_tfms = [get_transform(tn, config) for tn in tfm_names]
         tfms += [tfm for tfm in train_tfms if tfm not in tfms]  # add rest
 
-    # Concat mutlisequence data to single Tensors on the ChannelDim
+    # Concat multisequence data to single Tensors on the ChannelDim
     # Rename images to `CommonKeys.IMAGE` and labels to `CommonKeys.LABELS`
     # for more compatibility with monai.engines
 
