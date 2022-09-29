@@ -332,12 +332,14 @@ class DicomExplorer(BasicViewer):
         )
 
 
-class ListViewer(object):
+class ListViewer:
     """Display multipple images with their masks or labels/predictions.
     Arguments:
         x (tuple, list): Tensor objects to view
         y (tuple, list): Tensor objects (in case of segmentation task) or class labels as string.
         predictions (str): Class predictions
+        description: TODO
+        figsize: TODO
         cmap: colormap for display of `x`
         max_n: maximum number of items to display
     """
