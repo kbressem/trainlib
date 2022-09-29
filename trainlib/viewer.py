@@ -338,8 +338,8 @@ class ListViewer:
         x (tuple, list): Tensor objects to view
         y (tuple, list): Tensor objects (in case of segmentation task) or class labels as string.
         predictions (str): Class predictions
-        description: TODO
-        figsize: TODO
+        description: description of the whole image
+        figsize: size of image, passed as plotting argument
         cmap: colormap for display of `x`
         max_n: maximum number of items to display
     """
