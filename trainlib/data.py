@@ -1,4 +1,4 @@
-"""Create dataloaders from csv file"""
+"""Build DataLoaders, build datasets, adapt paths, handle CSV files"""
 
 from pathlib import Path
 import shutil
