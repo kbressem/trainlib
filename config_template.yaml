@@ -16,7 +16,7 @@ data:
   test_csv: test.csv
   # col names of the image and label files. Pass multiple names as list
   image_cols: [image_1, image_2]
-  label_cols: label
+  label_cols: [label]
   train: True # Use trainig dataset
   valid: True
   test: False
