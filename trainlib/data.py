@@ -10,7 +10,7 @@ import torch
 from monai.data import DataLoader as MonaiDataLoader
 from monai.utils import first
 
-from trainlib.import transforms
+from trainlib import transforms
 from trainlib.utils import num_workers
 
 
