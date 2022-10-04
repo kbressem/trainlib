@@ -23,11 +23,11 @@ from monai.handlers import (
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
-from . import loss, model, optimizer
-from .data import segmentation_dataloaders
-from .handlers import DebugHandler, PushnotificationHandler
-from .transforms import get_post_transforms
-from .utils import USE_AMP, import_patched
+from trainlib.import loss, model, optimizer
+from trainlib.data import segmentation_dataloaders
+from trainlib.handlers import DebugHandler, PushnotificationHandler
+from trainlib.transforms import get_post_transforms
+from trainlib.utils import USE_AMP, import_patched
 
 
 def loss_logger(engine):
