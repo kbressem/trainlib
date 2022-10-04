@@ -2,8 +2,12 @@
 
 ## Installation
 
-For editable install with development requirements use `make install`,
-to only install the library run `pip install .`
+In order to use trainlib in a project, you can install it via:
+- `pip install "git+https://github.com/kbressem/trainlib.git#egg=trainlib"`
+- or via the local mode: `pip install -e ../path/to/trainlib`
+
+If you want to develop trainlib, you can use the editable install with development requirements use `make install`,
+or to only install the trainlib run `pip install .`
 
 ## Concepts
 The goal of `trainlib` is to reduce biolerplate code by providing working routines
