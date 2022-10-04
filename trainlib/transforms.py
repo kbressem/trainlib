@@ -5,7 +5,7 @@ import monai
 from monai.transforms import Compose
 from monai.utils.enums import CommonKeys
 
-from .utils import import_patched
+from trainlib.utils import import_patched
 
 
 def get_transform(tfm_name: str, config: dict, **kwargs):
