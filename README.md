@@ -3,6 +3,7 @@
 ## Installation
 
 In order to use trainlib in a project, you can install it via:
+
 - `pip install "git+https://github.com/kbressem/trainlib.git#egg=trainlib"`
 - or via the local mode: `pip install -e ../path/to/trainlib`
 
@@ -10,6 +11,7 @@ If you want to develop trainlib, you can use the editable install with developme
 or to only install the trainlib run `pip install .`
 
 ## Concepts
+
 The goal of `trainlib` is to reduce biolerplate code by providing working routines
 for training neural networks. Repeating tasks, such as implementation of metrics,
 logging and visualizations are all implemented in `trainlib` so one can start focusing
@@ -44,7 +46,9 @@ This way, the results can be reproduced later on, even if the library did change
 `trainlib` build on MONAIs ["Workflow"](https://docs.monai.io/en/stable/engines.html#workflow) which in turn are based in PyTorch Ignite's ["Engine"](https://pytorch.org/ignite/concepts.html).
 
 ## Features
+
 `trainlib` comes with already implemented:
+
 - training routine for a U-Net segmentation model for medical images
 - Logging of Dice coefficient, Hausdorff distance, surface distance and loss
 - Logging of intermediate stages for segmentation
@@ -56,35 +60,34 @@ This way, the results can be reproduced later on, even if the library did change
 - Send training updates to mobile phone using [pushover](https://pushover.net/)
 - enhanced debugging features, designed to help catch commong errors early
 
-
 ## ToDo
 
- - [x] data.py
- - [x] transforms.py
- - [x] trainer
- - [ ] Support MONAI bundle
- - [ ] enable ensemble training
- - [ ] Enable hyper parameter tuning with ray
- - [x] argparse to train.py
- - [x] add val loss (tqdm and ~~loss logs~~)
- - [x] add CO2 estimation (https://github.com/mlco2/codecarbon#quickstart-)
- - [ ] add final classification report
- - [ ] Rewrite trainer.py to --> base trainer and subclasses segmentation trainer and classification trainer
- - [ ] add support for 2d segmentation
- - [ ] add support for 3d classification
- - [ ] add support for 2d classification
- - [ ] add project set-up (create folders for data/notebooks/patch, ci.yaml, Makefile etc. by running a single terminal command)
- - [ ] switch from setup.py to .toml
-
-
+- [x] data.py
+- [x] transforms.py
+- [x] trainer
+- [ ] Support MONAI bundle
+- [ ] enable ensemble training
+- [ ] Enable hyper parameter tuning with ray
+- [x] argparse to train.py
+- [x] add val loss (tqdm and ~~loss logs~~)
+- [x] add CO2 estimation (https://github.com/mlco2/codecarbon#quickstart-)
+- [ ] add final classification report
+- [ ] Rewrite trainer.py to --> base trainer and subclasses segmentation trainer and classification trainer
+- [ ] add support for 2d segmentation
+- [ ] add support for 3d classification
+- [ ] add support for 2d classification
+- [ ] add project set-up (create folders for data/notebooks/patch, ci.yaml, Makefile etc. by running a single terminal command)
+- [ ] switch from setup.py to .toml
 
 ## Known issues
 
 ### `RuntimeError: received 0 items of ancdata`
+
 This error occurs, because the number of allowed open files is to low.
 How the max. number of open files can be increased is described in: https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past-4096-ubuntu
 
 > ## In Summary
+>
 > If you want to increase the limit shown by ulimit -n, you should:
 >
 > ```bash
@@ -98,11 +101,11 @@ How the max. number of open files can be increased is described in: https://supe
 >     <enter your username> soft nofile 65535
 > ```
 >
->
->    Reboot your computer for changes to take effect.
+> Reboot your computer for changes to take effect.
 
 ### `RuntimeError: DataLoader worker (pid(s) 6662) exited unexpectedly`
+
 Most likely because of too much RAM while caching transforms.
 Fix this error by reducing the batch_size, image size (introduce downsizing early) or number of transforms.
 
-also see this issue:  https://github.com/pytorch/pytorch/issues/13246
+also see this issue: https://github.com/pytorch/pytorch/issues/13246
