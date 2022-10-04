@@ -10,8 +10,8 @@ import torch
 from monai.data import DataLoader as MonaiDataLoader
 from monai.utils import first
 
-from . import transforms
-from .utils import num_workers
+from trainlib.import transforms
+from trainlib.utils import num_workers
 
 
 def import_dataset(config: dict):
