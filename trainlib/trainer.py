@@ -23,7 +23,7 @@ from monai.handlers import (
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
-from trainlib.import loss, model, optimizer
+from trainlib import loss, model, optimizer
 from trainlib.data import segmentation_dataloaders
 from trainlib.handlers import DebugHandler, PushnotificationHandler
 from trainlib.transforms import get_post_transforms
