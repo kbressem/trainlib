@@ -9,8 +9,10 @@ pretty:
 	isort .
 	black --line-length 120 .
 
-test:
+lint:
 	flake8
+
+test:
 	cd tests && python -m unittest discover
 	make clean
 
