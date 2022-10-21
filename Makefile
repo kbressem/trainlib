@@ -10,7 +10,8 @@ pretty:
 	black --line-length 120 .
 
 lint:
-	flake8
+	flake8 .
+	mypy .
 
 test:
 	cd tests && python -m unittest discover

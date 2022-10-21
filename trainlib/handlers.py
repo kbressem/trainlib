@@ -7,6 +7,7 @@ import requests
 import torch
 import yaml
 from monai.utils.type_conversion import convert_to_tensor
+import munch
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class PushnotificationHandler:
         For more information on pushover visit: https://support.pushover.net/
     """
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: munch.Munch) -> None:
         self.config = config
         self.logger = logger
         if "pushover_credentials" not in self.config.keys():
@@ -72,7 +73,7 @@ class PushnotificationHandler:
             proxies=self.proxies,
         )
 
-    def _get_metrics(self, engine: ignite.engine.Engine) -> None:
+    def _get_metrics(self, engine: ignite.engine.Engine) -> str:
         "Extract metrics from engine.state"
         message = ""
         metric_names = list(engine.state.metrics.keys())
@@ -126,7 +127,7 @@ class PushnotificationHandler:
 class DebugHandler:
     "Send summary statistics about batch as debugging information to engine logger"
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: munch.Munch) -> None:
         self.config = config
         self.debug_on = self.config.debug
         self.logger = logger
@@ -153,7 +154,7 @@ class DebugHandler:
 
         message: str = self._table_row()
         for key in keys:
-            for items in engine.state.batch[key]:
+            for items in engine.state.batch[key]:  # type: ignore
                 items = convert_to_tensor(items)
                 message += self._table_row([key] + self._extract_statisics(items))
 
@@ -165,7 +166,7 @@ class DebugHandler:
             n_classes = self.config.model.out_channels
         except AttributeError:
             self.logger.info("`out_channels` not in config.model " "Cannot check if model output fits to loss function")
-        labels = convert_to_tensor(engine.state.batch["label"])
+        labels = convert_to_tensor(engine.state.batch["label"])  # type: ignore
         unique = torch.unique(labels)
         if len(unique) > n_classes:
             self.logger.error(
@@ -188,7 +189,7 @@ class DebugHandler:
         unique = len(torch.unique(x))
         return [shape, mean, std, min, max, unique]
 
-    def _table_row(self, items: List = None) -> None:
+    def _table_row(self, items: List = None) -> str:
         "Create table row with colwidth of 18 and colspacing of 2"
         if items is None:  # print header
             items = ["item", "shape", "mean", "std", "min", "max", "unique val"]

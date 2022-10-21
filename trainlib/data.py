@@ -9,12 +9,13 @@ import pandas as pd
 import torch
 from monai.data import DataLoader as MonaiDataLoader
 from monai.utils import first
+import munch
 
 from trainlib import transforms
 from trainlib.utils import num_workers
 
 
-def import_dataset(config: dict):
+def import_dataset(config: munch.Munch):
     if config.data.dataset_type == "persistent":
         from monai.data import PersistentDataset
         cache_dir = Path(config.data.cache_dir)
@@ -27,7 +28,7 @@ def import_dataset(config: dict):
 
         raise NotImplementedError("CacheDataset not yet implemented")
     else:
-        from monai.data import Dataset
+        from monai.data import Dataset  # type: ignore
     return Dataset
 
 
@@ -76,7 +77,7 @@ class DataLoader(MonaiDataLoader):
 
 
 def segmentation_dataloaders(
-    config: dict,
+    config: munch.Munch,
     train: bool = None,
     valid: bool = None,
     test: bool = None,
@@ -202,10 +203,10 @@ def segmentation_dataloaders(
     if len(data_loaders) == 1:
         return data_loaders[0]
     else:
-        DataLoaders = namedtuple(
+        DataLoaders = namedtuple(  # type: ignore
             "DataLoaders",
             # create str with specification of loader type if train and test are true but
             # valid is false string will be 'train test'
-            " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),
+            " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),  
         )
         return DataLoaders(*data_loaders)

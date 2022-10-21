@@ -22,6 +22,7 @@ from monai.handlers import (
 )
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
+import munch
 
 from trainlib import loss, model, optimizer
 from trainlib.data import segmentation_dataloaders
@@ -71,7 +72,7 @@ def pred_logger(engine):
         torch.save(engine.state.output[0]["pred"], root / f"pred_epoch_{epoch}.pt")
 
 
-def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
+def get_val_handlers(network: torch.nn.Module, config: munch.Munch) -> List:
     """Create default handlers for model validation
 
     Args:
@@ -122,7 +123,7 @@ def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
     return val_handlers
 
 
-def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: dict) -> list:
+def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: munch.Munch) -> List:
     """Create default handlers for model training
     Args:
         evaluator: an engine of type `monai.engines.SupervisedEvaluator` for evaluations
@@ -155,7 +156,7 @@ def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: dic
 
 
 def get_evaluator(
-    config: dict,
+    config: munch.Munch,
     device: torch.device,
     network: torch.nn.Module,
     val_data_loader: monai.data.dataloader.DataLoader,
@@ -209,7 +210,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
 
     def __init__(
         self,
-        config: dict,
+        config: munch.Munch,
         progress_bar: bool = True,
         early_stopping: bool = True,
         metrics: tuple = ("MeanDice", "HausdorffDistance", "SurfaceDistance"),

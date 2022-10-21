@@ -1,7 +1,7 @@
 import itertools
 import math
 import re
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict
 
 import numpy as np
 import SimpleITK as sitk  # noqa N813
@@ -70,7 +70,7 @@ def resample_to_ras_and_spacing(
     return resampled_image
 
 
-def indices_for_patches(patch_edge_length: int, image_edge_length: int) -> List[Tuple[int]]:
+def indices_for_patches(patch_edge_length: int, image_edge_length: int) -> Tuple[slice, ...]:
     """Calculate indices to split image axis to n supregions of approximate `patch_edge_length`"""
     n = math.ceil(image_edge_length / patch_edge_length) + 1
     steps = np.round(np.linspace(0, image_edge_length, n))
@@ -86,7 +86,7 @@ def store_old_affine(patch: sitk.Image, image: sitk.Image) -> sitk.Image:
     return patch
 
 
-def image_to_patches(image: sitk.Image, patch_size: List[int]) -> List[sitk.Image]:
+def image_to_patches(image: sitk.Image, patch_size: List[int]) -> Tuple[List[sitk.Image], Dict]:
     """Convert an sitk.Image to multiple smaller patches.
 
                     O--O  O--O
@@ -137,8 +137,8 @@ def string_tuple_to_numeric(string_tuple: str) -> Tuple[Union[int, float]]:
             return int(x)
         except ValueError:
             return float(x)
-
-    return tuple(map(_float_or_int, re.sub("\(|\)| ", "", string_tuple).split(",")))  # noqa W605  # noqa W605
+    numeric_values = map(_float_or_int, re.sub("\(|\)| ", "", string_tuple).split(","))  # noqa W605
+    return tuple(numeric_values)  # type: ignore
 
 
 def patches_to_image(patches: List[sitk.Image], meta_dict: Optional[dict] = None) -> sitk.Image:
