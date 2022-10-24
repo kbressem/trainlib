@@ -1,7 +1,7 @@
 import itertools
 import math
 import re
-from typing import List, Optional, Tuple, Union, Dict
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import SimpleITK as sitk  # noqa N813
@@ -137,6 +137,7 @@ def string_tuple_to_numeric(string_tuple: str) -> Tuple[Union[int, float]]:
             return int(x)
         except ValueError:
             return float(x)
+
     numeric_values = map(_float_or_int, re.sub("\(|\)| ", "", string_tuple).split(","))  # noqa W605
     return tuple(numeric_values)  # type: ignore
 

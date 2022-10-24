@@ -1,7 +1,7 @@
 import io
 import logging
-from pathlib import Path
 import signal
+from pathlib import Path
 
 import cv2
 import imageio

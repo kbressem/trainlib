@@ -1,15 +1,15 @@
 """Build DataLoaders, build datasets, adapt paths, handle CSV files"""
 
-from pathlib import Path
 import shutil
 from collections import namedtuple
 from functools import partial
+from pathlib import Path
 
+import munch
 import pandas as pd
 import torch
 from monai.data import DataLoader as MonaiDataLoader
 from monai.utils import first
-import munch
 
 from trainlib import transforms
 from trainlib.utils import num_workers
@@ -18,6 +18,7 @@ from trainlib.utils import num_workers
 def import_dataset(config: munch.Munch):
     if config.data.dataset_type == "persistent":
         from monai.data import PersistentDataset
+
         cache_dir = Path(config.data.cache_dir)
         if cache_dir.exists():
             shutil.rmtree(str(cache_dir))  # rm previous cache DS
@@ -207,6 +208,6 @@ def segmentation_dataloaders(
             "DataLoaders",
             # create str with specification of loader type if train and test are true but
             # valid is false string will be 'train test'
-            " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),  
+            " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),
         )
         return DataLoaders(*data_loaders)

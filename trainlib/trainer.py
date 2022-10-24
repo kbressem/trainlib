@@ -4,6 +4,7 @@ from typing import Callable, List, Tuple, Union
 
 import ignite
 import monai
+import munch
 import torch
 import yaml
 from codecarbon import EmissionsTracker
@@ -22,7 +23,6 @@ from monai.handlers import (
 )
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
-import munch
 
 from trainlib import loss, model, optimizer
 from trainlib.data import segmentation_dataloaders
@@ -390,7 +390,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         if try_resume_from_checkpoint:
             checkpoints = [
                 model_dir / checkpoint_name
-                for checkpoint_name in model_dir.glob('*')
+                for checkpoint_name in model_dir.glob("*")
                 if self.config.run_id.split("/")[-1] in checkpoint_name
             ]
             try:

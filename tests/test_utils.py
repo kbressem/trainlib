@@ -1,3 +1,4 @@
+import inspect
 import unittest
 
 import ignite
@@ -20,3 +21,9 @@ class TestCase(unittest.TestCase):
         [torch.zeros(1, 3, 3, 3), torch.ones(1, 3, 3, 3), torch.full((1, 3, 3, 3), 2)],
         1,
     )
+
+
+def func_req_additional_args(func):
+    "Checks if non-default arguments exist in function"
+    signature = inspect.signature(func)
+    return any([v.default is inspect.Parameter.empty and "args" not in k for k, v in signature.parameters.items()])

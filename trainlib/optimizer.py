@@ -1,7 +1,7 @@
 import monai.optimizers as monai_optimizers
-import torch
-import torch.optim as torch_optimizers 
 import munch
+import torch
+import torch.optim as torch_optimizers
 
 
 def get_optimizer(model: torch.nn.Module, config: munch.Munch) -> torch.optim.Optimizer:

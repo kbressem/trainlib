@@ -3,11 +3,11 @@ import time
 from typing import List
 
 import ignite
+import munch
 import requests
 import torch
 import yaml
 from monai.utils.type_conversion import convert_to_tensor
-import munch
 
 logger = logging.getLogger(__name__)
 
