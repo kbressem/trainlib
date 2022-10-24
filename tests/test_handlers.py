@@ -3,12 +3,15 @@ import unittest
 
 import yaml
 from ignite.engine import Events
-from test_utils import TestCase
+from test_utils import TEST_CONFIG, TEST_ENGINE, TEST_IMAGE, TEST_LABEL
 
 from trainlib.handlers import DebugHandler, PushnotificationHandler
 
 
-class TestPushNotificationHandler(TestCase):
+class TestPushNotificationHandler(unittest.TestCase):
+    config = TEST_CONFIG
+    engine = TEST_ENGINE
+
     def test_init(self):
         # without credentials
         try:
@@ -42,7 +45,12 @@ class TestPushNotificationHandler(TestCase):
         )
 
 
-class TestDebugHandler(TestCase):
+class TestDebugHandler(unittest.TestCase):
+    config = TEST_CONFIG
+    engine = TEST_ENGINE
+    image = TEST_IMAGE
+    label = TEST_LABEL
+
     def _prepare_engine_state(self):
         self.engine.state.batch = {"image": self.image, "label": self.label}
 

@@ -1,7 +1,8 @@
+import munch
 from monai.networks.nets import UNet
 
 
-def get_model(config: dict):
+def get_model(config: munch.Munch):
     """Create a standard UNet"""
     return UNet(
         spatial_dims=config.ndim,

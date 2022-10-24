@@ -2,13 +2,14 @@ import inspect
 from typing import Callable, List
 
 import monai
+import munch
 from monai.transforms import Compose
 from monai.utils.enums import CommonKeys
 
 from trainlib.utils import import_patched
 
 
-def get_transform(tfm_name: str, config: dict, **kwargs):
+def get_transform(tfm_name: str, config: munch.Munch, **kwargs):
     """Get transform from monai.transforms with arguments from config"""
     try:
         transform = import_patched(config.patch.transforms, tfm_name)
@@ -27,7 +28,7 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
                     transform_config[tfm_name].pop(k)
             kwargs = {**transform_config[tfm_name], **kwargs}
 
-    allowed_kwargs = inspect.signature(transform.__init__).parameters.keys()
+    allowed_kwargs = inspect.signature(transform.__init__).parameters.keys()  # type: ignore
     if "keys" not in kwargs.keys():
         kwargs["keys"] = config.data.image_cols + config.data.label_cols
     if "prob" in allowed_kwargs and "prob" not in kwargs.keys():
@@ -39,7 +40,7 @@ def get_transform(tfm_name: str, config: dict, **kwargs):
     return transform(**kwargs)
 
 
-def get_base_transforms(config: dict) -> List[Callable]:
+def get_base_transforms(config: munch.Munch) -> List[Callable]:
     """Transforms applied everytime at the start of the transform pipeline"""
     tfms = [
         get_transform("LoadImaged", config=config, allow_missing_keys=True),
@@ -51,7 +52,7 @@ def get_base_transforms(config: dict) -> List[Callable]:
     return tfms
 
 
-def get_train_transforms(config: dict) -> Compose:
+def get_train_transforms(config: munch.Munch) -> Compose:
     """Build transforms dynamically from config for data augmentation during training.
     Args:
         config: parsed YAML file with global configurations
@@ -89,7 +90,7 @@ def get_train_transforms(config: dict) -> Compose:
     return Compose(tfms)
 
 
-def get_val_transforms(config: dict) -> Compose:
+def get_val_transforms(config: munch.Munch) -> Compose:
     """Transforms applied only to the valid dataset"""
     tfms = get_base_transforms(config=config)
     tfms += [
@@ -132,7 +133,7 @@ def get_val_transforms(config: dict) -> Compose:
     return Compose(tfms)
 
 
-def get_test_transforms(config: dict) -> Compose:
+def get_test_transforms(config: munch.Munch) -> Compose:
     """Transforms applied only to the test dataset"""
     tfms = get_base_transforms(config=config)
     tfms += [
@@ -171,7 +172,7 @@ def get_test_transforms(config: dict) -> Compose:
     return Compose(tfms)
 
 
-def get_post_transforms(config: dict):
+def get_post_transforms(config: munch.Munch):
     """Transforms applied to the model output, before metrics are calculated"""
     tfms = [
         get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]),

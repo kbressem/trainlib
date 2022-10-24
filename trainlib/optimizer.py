@@ -1,8 +1,10 @@
-import monai
+import monai.optimizers as monai_optimizers
+import munch
 import torch
+import torch.optim as torch_optimizers
 
 
-def get_optimizer(model: torch.nn.Module, config: dict) -> torch.optim.Optimizer:
+def get_optimizer(model: torch.nn.Module, config: munch.Munch) -> torch.optim.Optimizer:
     """Create an optimizer of `type` with specific keyword arguments from config.
     Example:
 
@@ -23,11 +25,11 @@ def get_optimizer(model: torch.nn.Module, config: dict) -> torch.optim.Optimizer
     """
     optimizer_type = list(config.optimizer.keys())[0]
     opt_config = config.optimizer[optimizer_type]
-    if hasattr(torch.optim, optimizer_type):
-        optimizer_fun = getattr(torch.optim, optimizer_type)
-    elif hasattr(monai.optimizers, optimizer_type):
-        optimizer_fun = getattr(monai.optimizers, optimizer_type)
+    if hasattr(torch_optimizers, optimizer_type):
+        optimizer_fun = getattr(torch_optimizers, optimizer_type)
+    elif hasattr(monai_optimizers, optimizer_type):
+        optimizer_fun = getattr(monai_optimizers, optimizer_type)
     else:
-        raise ValueError(f"Optimizer {optimizer_type} not found")
+        raise AttributeError(f"Optimizer {optimizer_type} is not found in `monai.optimizers` or `torch.optim`")
     optimizer = optimizer_fun(model.parameters(), **opt_config)
     return optimizer

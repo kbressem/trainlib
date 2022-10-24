@@ -94,9 +94,9 @@ class BasicViewer:
     ):
         x = np.squeeze(convert_to_numpy(x))
         assert x.ndim == 3, f"x.ndim needs to be equal to but is {x.ndim}"
-        if y is not None:
+        if y:
             y = np.squeeze(convert_to_numpy(y))
-            assert x.shape == y.shape, f"Shapes of x {x.shape} and y {y.shape} do not match"
+            assert x.shape == y.shape, f"Shapes of x {x.shape} and y {y.shape} do not match"  # type: ignore
             self.with_mask = True
         else:
             self.with_mask = False

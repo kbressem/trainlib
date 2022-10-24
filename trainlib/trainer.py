@@ -4,22 +4,15 @@ from typing import Callable, List, Tuple, Union
 
 import ignite
 import monai
+import munch
 import torch
 import yaml
 from codecarbon import EmissionsTracker
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
-from monai.handlers import (
-    CheckpointSaver,
-    EarlyStopHandler,
-    MeanDice,
-    MetricLogger,
-    MetricsSaver,
-    StatsHandler,
-    TensorBoardImageHandler,
-    TensorBoardStatsHandler,
-    ValidationHandler,
-    from_engine,
-)
+from monai.handlers import (CheckpointSaver, EarlyStopHandler, MeanDice,
+                            MetricLogger, MetricsSaver, StatsHandler,
+                            TensorBoardImageHandler, TensorBoardStatsHandler,
+                            ValidationHandler, from_engine)
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
@@ -71,7 +64,7 @@ def pred_logger(engine):
         torch.save(engine.state.output[0]["pred"], root / f"pred_epoch_{epoch}.pt")
 
 
-def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
+def get_val_handlers(network: torch.nn.Module, config: munch.Munch) -> List:
     """Create default handlers for model validation
 
     Args:
@@ -122,7 +115,7 @@ def get_val_handlers(network: torch.nn.Module, config: dict) -> list:
     return val_handlers
 
 
-def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: dict) -> list:
+def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: munch.Munch) -> List:
     """Create default handlers for model training
     Args:
         evaluator: an engine of type `monai.engines.SupervisedEvaluator` for evaluations
@@ -155,7 +148,7 @@ def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: dic
 
 
 def get_evaluator(
-    config: dict,
+    config: munch.Munch,
     device: torch.device,
     network: torch.nn.Module,
     val_data_loader: monai.data.dataloader.DataLoader,
@@ -195,7 +188,7 @@ def get_evaluator(
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
             )
         },
-        val_handlers=val_handlers,
+        val_handlers=val_handlers,  # type: ignore
         # if no FP16 support in GPU or PyTorch version < 1.6, will not enable AMP evaluation
         amp=USE_AMP and config.device != torch.device("cpu"),
     )
@@ -209,10 +202,10 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
 
     def __init__(
         self,
-        config: dict,
+        config: munch.Munch,
         progress_bar: bool = True,
         early_stopping: bool = True,
-        metrics: tuple = ("MeanDice", "HausdorffDistance", "SurfaceDistance"),
+        metrics: Union[List, Tuple[str, ...]] = ("MeanDice", "HausdorffDistance", "SurfaceDistance"),
         save_latest_metrics: bool = True,
     ):
         self.config = config
@@ -253,7 +246,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         if progress_bar:
             self._add_progress_bars()
 
-        self.schedulers = []
+        self.schedulers: List = []
         # add different metrics dynamically
         for m in metrics:
             getattr(monai.handlers, m)(
@@ -295,7 +288,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         """Set up directories for saving logs, outputs and configs of current training session"""
         # create run_id, copy config file for reproducibility
         run_id = Path(self.config.run_id)
-        run_id.makedir(exist_ok=True)
+        run_id.mkdir(exist_ok=True)
         with open(run_id / "config.yaml", "w+") as f:
             f.write(yaml.safe_dump(self.config))
 
@@ -308,7 +301,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         dir_name = Path(__file__).absolute().parent
         run_id = Path(self.config.run_id)
         shutil.copytree(dir_name, str(run_id / "trainlib"), dirs_exist_ok=True)
-        (run_id / "patch").makedir(exist_ok=True)
+        (run_id / "patch").mkdir(exist_ok=True)
         for k in self.config.patch.keys():
             fn = run_id / "patch" / f"{k}.py"
             shutil.copy(self.config.patch[k], str(fn))
@@ -388,9 +381,9 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
 
         if try_resume_from_checkpoint:
             checkpoints = [
-                model_dir / checkpoint_name
-                for checkpoint_name in model_dir.glob('*')
-                if self.config.run_id.split("/")[-1] in checkpoint_name
+                (model_dir / checkpoint_name)
+                for checkpoint_name in model_dir.glob("*")
+                if str(self.config.run_id).split("/")[-1] in checkpoint_name  # type: ignore
             ]
             try:
                 checkpoint = sorted(checkpoints)[-1]
@@ -417,7 +410,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         """Run training using one-cycle-policy"""
         assert "FitOneCycle" not in self.schedulers, "FitOneCycle already added"
         fit_one_cycle = monai.handlers.LrScheduleHandler(
-            torch.optim.lr_scheduler.OneCycleLR(
+            torch.optim.lr_scheduler.OneCycleLR(  # type: ignore
                 optimizer=self.optimizer,
                 max_lr=self.optimizer.param_groups[0]["lr"],
                 epochs=self.state.max_epochs,
@@ -449,7 +442,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             print_lr=True,
             name="ReduceLROnPlateau",
             epoch_level=True,
-            step_transform=lambda engine: engine.state.metrics[engine.state.key_metric_name],
+            step_transform=lambda engine: engine.state.metrics[engine.state.key_metric_name],  # type: ignore
         )
         reduce_lr_on_plateau.attach(self.evaluator)
         self.schedulers += ["ReduceLROnPlateau"]
