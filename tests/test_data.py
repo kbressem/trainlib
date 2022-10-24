@@ -13,14 +13,14 @@ class TestDatasetInit(unittest.TestCase):
     config = TEST_CONFIG
 
     def test_init_iterative_dataset(self):
-        "Test that dataset is of correct instance"
+        """Test that dataset is of correct instance"""
         self.config.data.dataset_type = "iterative"
         dataset = import_dataset(self.config)(data=[], transform=[])
         self.assertIsInstance(dataset, monai.data.Dataset)
         self.assertFalse(Path(self.config.data.cache_dir).exists())
 
     def test_init_persistent_dataset(self):
-        "Test that dataset is of correct instance and cache dir is created"
+        """Test that dataset is of correct instance and cache dir is created"""
         self.config.data.dataset_type = "persistent"
         with tempfile.TemporaryDirectory() as tempdir:
             self.config.data.cache_dir = f"{tempdir}/.cache"

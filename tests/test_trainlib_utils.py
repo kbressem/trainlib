@@ -9,7 +9,7 @@ from trainlib.utils import import_patched, load_config, num_workers
 
 class TestNumWorkers(unittest.TestCase):
     def test_num_workers(self):
-        "Test that num_workers returns an integer that is smaller than the max. amount of workers"
+        """Test that num_workers returns an integer that is smaller than the max. amount of workers"""
         workers = num_workers()
         self.assertIsInstance(workers, int)
         self.assertTrue(workers < multiprocessing.cpu_count())
@@ -17,19 +17,19 @@ class TestNumWorkers(unittest.TestCase):
 
 class TestLoadConfig(unittest.TestCase):
     def test_load(self):
-        "Test that config is a dict and munch.Munch object"
+        """Test that config is a dict and munch.Munch object"""
         config = load_config("test_config.yaml")
         self.assertIsInstance(config, dict)
         self.assertIsInstance(config, munch.Munch)
 
     def test_listification(self):
-        "Test that image_cols and label_cols are converted to lists"
+        """Test that image_cols and label_cols are converted to lists"""
         config = load_config("test_config.yaml")
         self.assertIsInstance(config.data.image_cols, list)
         self.assertIsInstance(config.data.label_cols, list)
 
     def test_mode(self):
-        "Test that length of mode paramter is same as numer of image + label cols"
+        """Test that length of mode paramter is same as numer of image + label cols"""
         config = load_config("test_config.yaml")
         self.assertEqual(
             len(config.transforms.mode),
@@ -37,7 +37,7 @@ class TestLoadConfig(unittest.TestCase):
         )
 
     def test_paths(self):
-        "Test that paths for output are specified correctly"
+        """Test that paths for output are specified correctly"""
         config = load_config("test_config.yaml")
         self.assertIn(str(config.run_id), str(config.out_dir))
         self.assertIn(str(config.run_id), str(config.log_dir))
@@ -45,7 +45,7 @@ class TestLoadConfig(unittest.TestCase):
 
 class TestImportPatched(unittest.TestCase):
     def test_import_patched(self):
-        "Test if function can be sucessfully overwritten by import_patched"
+        """Test if function can be sucessfully overwritten by import_patched"""
 
         def return_five():
             return 5
