@@ -1,12 +1,15 @@
 import unittest
 
 import torch
-from test_utils import TestCase
+from test_utils import TEST_CONFIG, TEST_IMAGE
 
 from trainlib.model import get_model
 
 
-class TestModel(TestCase):
+class TestModel(unittest.TestCase):
+    config = TEST_CONFIG
+    image = TEST_IMAGE
+
     def test_init(self):
         model = get_model(self.config)
         self.assertIsInstance(model, torch.nn.Module)

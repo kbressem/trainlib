@@ -4,12 +4,14 @@ from pathlib import Path
 
 import monai
 from monai.data import DataLoader
-from test_utils import TestCase
+from test_utils import TEST_CONFIG
 
 from trainlib.data import import_dataset, segmentation_dataloaders
 
 
-class TestDatasetInit(TestCase):
+class TestDatasetInit(unittest.TestCase):
+    config = TEST_CONFIG
+
     def test_init_iterative_dataset(self):
         "Test that dataset is of correct instance"
         self.config.data.dataset_type = "iterative"
@@ -27,7 +29,9 @@ class TestDatasetInit(TestCase):
         self.assertIsInstance(dataset, monai.data.PersistentDataset)
 
 
-class TestSegmentationDataLoaders(TestCase):
+class TestSegmentationDataLoaders(unittest.TestCase):
+    config = TEST_CONFIG
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config.data.train = True

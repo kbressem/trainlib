@@ -14,7 +14,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)
+USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)  # type: ignore
 
 
 def load_config(fn: str = "config.yaml") -> munch.Munch:
