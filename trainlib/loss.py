@@ -26,7 +26,7 @@ def get_loss(config: munch.Munch) -> Callable:
     elif hasattr(torch.nn, loss_type):
         loss_fun = getattr(torch.nn, loss_type)
     else:
-        raise AttributeError(f"Lossfunction {loss_type} is not in `monai.losses` or `torch.nn`")
+        raise AttributeError(f"Loss function '{loss_type}' is neither in `monai.losses` nor in `torch.nn`")
 
     loss = loss_fun(**loss_config)
     return loss
