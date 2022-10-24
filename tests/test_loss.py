@@ -19,7 +19,7 @@ LOSSES = monai_losses + torch_losses
 class TestLoss(unittest.TestCase):
     @parameterized.expand(LOSSES)
     def test_init(self, loss_name):
-        "Simple test if losses can be initialized"
+        """Simple test if losses can be initialized"""
         config = TEST_CONFIG.copy()
         config.loss = {loss_name: {}}
         loss = get_loss(config)
