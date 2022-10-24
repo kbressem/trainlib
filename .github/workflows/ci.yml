@@ -31,7 +31,8 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: type checking with mypy
       run: |
-        mypy --install-types .
+        python -m pip install types-PyYAML types-attrs types-pyOpenSSL types-requests types-setuptools
+        mypy .
     - name: Install library with all dependencies
       run: pip install -e .
     - name: Run tests
