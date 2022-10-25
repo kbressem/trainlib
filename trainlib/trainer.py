@@ -9,10 +9,18 @@ import torch
 import yaml
 from codecarbon import EmissionsTracker
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
-from monai.handlers import (CheckpointSaver, EarlyStopHandler, MeanDice,
-                            MetricLogger, MetricsSaver, StatsHandler,
-                            TensorBoardImageHandler, TensorBoardStatsHandler,
-                            ValidationHandler, from_engine)
+from monai.handlers import (
+    CheckpointSaver,
+    EarlyStopHandler,
+    MeanDice,
+    MetricLogger,
+    MetricsSaver,
+    StatsHandler,
+    TensorBoardImageHandler,
+    TensorBoardStatsHandler,
+    ValidationHandler,
+    from_engine,
+)
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
