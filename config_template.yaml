@@ -17,9 +17,9 @@ data:
   # col names of the image and label files. Pass multiple names as list
   image_cols: [image_1, image_2]
   label_cols: [label]
-  train: True # Use trainig dataset
-  valid: True
-  test: False
+  train: true # Use trainig dataset
+  valid: true
+  test: false
   dataset_type: persistent # iterative or persistend (chaches transforms on disk for large speedup)
   cache_dir: .monai-cache # cache dir for persistent dataset, otherwise ignored
   batch_size: 1
@@ -57,6 +57,10 @@ training:
 transforms:
   prob: 0.1
   base:
+    LoadImaged:
+      allow_missing_keys: true
+    EnsureChannelFirstd:
+      allow_missing_keys: true
     Spacingd:
       pixdim: [1, 1, 1]
       mode: [bilinear, nearest]

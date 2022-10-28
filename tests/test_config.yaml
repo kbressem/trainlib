@@ -44,8 +44,13 @@ training:
   early_stopping_patience: 2
   max_epochs: 2
 transforms:
-  Spacingd:
-    pixdim: [2, 2, 2]
-    mode: [bilinear, nearest]
+  base:
+    LoadImaged:
+      allow_missing_keys: true
+    EnsureChannelFirstd:
+      allow_missing_keys: true
+    Spacingd:
+      pixdim: [2, 2, 2]
+      mode: [bilinear, nearest]
   orientation: RAS
   prob: 0.1
