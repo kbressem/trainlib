@@ -142,9 +142,9 @@ def segmentation_dataloaders(
 
     for col in image_cols + label_cols:
         # create absolute file name from relative fn in df and data_dir
-        train_df[col] = data_dir + train_df[col]
-        valid_df[col] = data_dir + valid_df[col]
-        test_df[col] = data_dir + test_df[col]
+        train_df[col] = data_dir / train_df[col]
+        valid_df[col] = data_dir / valid_df[col]
+        test_df[col] = data_dir / test_df[col]
 
     # Dataframes should now be converted to a dict
     # The data_dict looks like this:
