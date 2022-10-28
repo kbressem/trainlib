@@ -1,4 +1,5 @@
 import multiprocessing
+from pathlib import Path
 import tempfile
 import unittest
 
@@ -21,6 +22,7 @@ class TestLoadConfig(unittest.TestCase):
         config = load_config("test_config.yaml")
         self.assertIsInstance(config, dict)
         self.assertIsInstance(config, munch.Munch)
+        self.assertIsInstance(config.data.data_dir, Path)
 
     def test_listification(self):
         """Test that image_cols and label_cols are converted to lists"""
