@@ -306,7 +306,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             for path in ["data_dir", "train_csv", "valid_csv", "test_csv"]:
                 config["data"][path] = str(config["data"][path])
 
-            f.write(yaml.safe_dump(config))
+            f.write(yaml.safe_dump(config, indent=4))
 
         # delete old log_dir
         if Path(self.config.log_dir).exists():
