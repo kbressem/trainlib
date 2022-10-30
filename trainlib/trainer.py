@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
-
+from copy import deepcopy
 import ignite
 import monai
 import munch
@@ -298,7 +298,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         run_id = Path(self.config.run_id)
         run_id.mkdir(exist_ok=True, parents=True)
         with open(run_id / "config.yaml", "w+") as f:
-            config = dict(self.config)
+            config = dict(deepcopy(self.config))
             # convert pathlib.Path to string, because of incompatibility with PyYAML
             for path in ["run_id", "out_dir", "model_dir", "log_dir"]:
                 config[path] = str(config[path])
