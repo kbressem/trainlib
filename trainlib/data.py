@@ -1,10 +1,11 @@
 """Build DataLoaders, build datasets, adapt paths, handle CSV files"""
 
-from pathlib import Path
 import shutil
 from collections import namedtuple
 from functools import partial
+from pathlib import Path
 
+import munch
 import pandas as pd
 import torch
 from monai.data import DataLoader as MonaiDataLoader
@@ -18,6 +19,7 @@ from trainlib.utils import num_workers
 def import_dataset(config: munch.Munch):
     if config.data.dataset_type == "persistent":
         from monai.data import PersistentDataset
+
         cache_dir = Path(config.data.cache_dir)
         if cache_dir.exists():
             shutil.rmtree(str(cache_dir))  # rm previous cache DS
@@ -141,9 +143,9 @@ def segmentation_dataloaders(
 
     for col in image_cols + label_cols:
         # create absolute file name from relative fn in df and data_dir
-        train_df[col] = data_dir + train_df[col]
-        valid_df[col] = data_dir + valid_df[col]
-        test_df[col] = data_dir + test_df[col]
+        train_df[col] = data_dir / train_df[col]
+        valid_df[col] = data_dir / valid_df[col]
+        test_df[col] = data_dir / test_df[col]
 
     # Dataframes should now be converted to a dict
     # The data_dict looks like this:

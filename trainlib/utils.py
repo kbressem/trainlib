@@ -14,7 +14,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)
+USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)  # type: ignore
 
 
 def load_config(fn: str = "config.yaml") -> munch.Munch:
@@ -32,6 +32,7 @@ def load_config(fn: str = "config.yaml") -> munch.Munch:
     run_id = Path(config.run_id)
     config.out_dir = run_id / config.out_dir
     config.log_dir = run_id / config.log_dir
+    config.data.data_dir = Path(config.data.data_dir).expanduser()
 
     if not isinstance(config.data.image_cols, (tuple, list)):
         config.data.image_cols = [config.data.image_cols]

@@ -3,6 +3,7 @@ import time
 from typing import List
 
 import ignite
+import munch
 import requests
 import torch
 import yaml

@@ -2,6 +2,7 @@ import inspect
 from typing import Callable, List
 
 import monai
+import munch
 from monai.transforms import Compose
 from monai.utils.enums import CommonKeys
 import munch
@@ -42,10 +43,7 @@ def get_transform(tfm_name: str, config: munch.Munch, **kwargs):
 
 def get_base_transforms(config: munch.Munch) -> List[Callable]:
     """Transforms applied everytime at the start of the transform pipeline"""
-    tfms = [
-        get_transform("LoadImaged", config=config, allow_missing_keys=True),
-        get_transform("EnsureChannelFirstd", config=config, allow_missing_keys=True),
-    ]
+    tfms = []
     if "base" in config.transforms.keys():
         tfm_names = list(config.transforms.base)
         tfms += [get_transform(tn, config) for tn in tfm_names]
