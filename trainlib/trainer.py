@@ -9,10 +9,18 @@ import torch
 import yaml
 from codecarbon import EmissionsTracker
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
-from monai.handlers import (CheckpointSaver, EarlyStopHandler, MeanDice,
-                            MetricLogger, MetricsSaver, StatsHandler,
-                            TensorBoardImageHandler, TensorBoardStatsHandler,
-                            ValidationHandler, from_engine)
+from monai.handlers import (
+    CheckpointSaver,
+    EarlyStopHandler,
+    MeanDice,
+    MetricLogger,
+    MetricsSaver,
+    StatsHandler,
+    TensorBoardImageHandler,
+    TensorBoardStatsHandler,
+    ValidationHandler,
+    from_engine,
+)
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
@@ -292,12 +300,12 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         with open(run_id / "config.yaml", "w+") as f:
             config = dict(self.config)
             # convert pathlib.Path to string, because of incompatibility with PyYAML
-            for path in ["run_id", "out_dir", "model_dir", "log_dir"]: 
+            for path in ["run_id", "out_dir", "model_dir", "log_dir"]:
                 config[path] = str(config[path])
-            
-            for path in ["data_dir", "train_csv", "valid_csv", "test_csv"]: 
+
+            for path in ["data_dir", "train_csv", "valid_csv", "test_csv"]:
                 config["data"][path] = str(config["data"][path])
-                
+
             f.write(yaml.safe_dump(config))
 
         # delete old log_dir
