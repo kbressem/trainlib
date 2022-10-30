@@ -137,6 +137,7 @@ def string_tuple_to_numeric(string_tuple: str) -> Tuple[Union[int, float]]:
             return int(x)
         except ValueError:
             return float(x)
+
     numeric_values = map(_float_or_int, re.sub("\(|\)| ", "", string_tuple).split(","))  # noqa W605
     return tuple(numeric_values)  # type: ignore
 

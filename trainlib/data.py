@@ -10,7 +10,6 @@ import pandas as pd
 import torch
 from monai.data import DataLoader as MonaiDataLoader
 from monai.utils import first
-import munch
 
 from trainlib import transforms
 from trainlib.utils import num_workers
@@ -209,6 +208,6 @@ def segmentation_dataloaders(
             "DataLoaders",
             # create str with specification of loader type if train and test are true but
             # valid is false string will be 'train test'
-            " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),  
+            " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),
         )
         return DataLoaders(*data_loaders)

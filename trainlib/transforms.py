@@ -5,7 +5,6 @@ import monai
 import munch
 from monai.transforms import Compose
 from monai.utils.enums import CommonKeys
-import munch
 
 from trainlib.utils import import_patched
 

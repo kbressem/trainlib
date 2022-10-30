@@ -23,7 +23,6 @@ from monai.handlers import (
 )
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
-import munch
 
 from trainlib import loss, model, optimizer
 from trainlib.data import segmentation_dataloaders

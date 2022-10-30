@@ -1,6 +1,6 @@
 import munch
 from monai.networks.nets import UNet
-import munch
+
 
 def get_model(config: munch.Munch):
     """Create a standard UNet"""
