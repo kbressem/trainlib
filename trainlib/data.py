@@ -4,11 +4,14 @@ import shutil
 from collections import namedtuple
 from functools import partial
 from pathlib import Path
+from typing import Optional
 
 import munch
 import pandas as pd
 import torch
+from tqdm import tqdm
 from monai.data import DataLoader as MonaiDataLoader
+from monai.transforms import Compose
 from monai.utils import first
 
 from trainlib import transforms
@@ -34,7 +37,7 @@ def import_dataset(config: munch.Munch):
 
 
 class DataLoader(MonaiDataLoader):
-    """Overwrite monai DataLoader for enhanced viewing capabilities"""
+    """Overwrite monai DataLoader for enhanced viewing and debugging capabilities"""
 
     def show_batch(
         self,
@@ -76,6 +79,49 @@ class DataLoader(MonaiDataLoader):
             **kwargs,
         ).show()
 
+    def sanity_check(self, task: str = "segmentation", sample_size: Optional[int] = None) -> None:
+        """ Iterate through the dataset and check if transforms are applied without error 
+        and if the shape and format of the data is correct. 
+
+        Args: 
+            task: The deep learning tasks. Currently only `segmentation` is supported. 
+            sample_size: Check only the first n items in the data
+        """
+
+        data = self.dataset.data
+        transforms = self.dataset.transform
+        if sample_size: 
+            data = data[:sample_size]
+
+        if task == "segmentation": 
+            self._sanity_check_segmentation(data, transforms)
+        else: 
+            raise NotImplementedError(f"{task} is not yet implemented")
+        
+    def _sanity_check_segmentation(self, data: dict, transforms: Compose) -> None:
+
+        unique_labels: list = []
+        for data_dict in tqdm(data): 
+            try: 
+                out = transforms(data_dict)
+            except Exception as e: 
+                print(data_dict)
+                print(f"Exception: {e} raised")
+            else: 
+                if not isinstance(out, list): 
+                    out = [out]
+                for item in out: 
+                    image_fn = item["image"].meta["filename_or_obj"]
+                    label_fn = item["label"].meta["filename_or_obj"]
+                    if not item["image"].shape == item["label"].shape: 
+                        f"shape missmatch found for {image_fn} and {label_fn}"
+                    unique_labels += item["label"].unique().tolist()
+        
+        print("Frequency of label values:")
+        for value in set(unique_labels): 
+            print(f"value {value} appears in {unique_labels.count(value)} items in the dataset")
+
+
 
 def segmentation_dataloaders(
     config: munch.Munch,
@@ -83,7 +129,7 @@ def segmentation_dataloaders(
     valid: bool = None,
     test: bool = None,
 ):
-    """Create segmentation dataloaders
+    """ Create segmentation dataloaders
     Args:
         config: config file
         train: whether to return a train DataLoader
