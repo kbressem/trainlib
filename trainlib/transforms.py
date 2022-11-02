@@ -26,7 +26,8 @@ def get_transform(tfm_name: str, config: munch.Munch, **kwargs):
             for k in kwargs.keys():
                 if k in transform_config[tfm_name].keys():
                     transform_config[tfm_name].pop(k)
-            kwargs = {**transform_config[tfm_name], **kwargs}
+            if transform_config[tfm_name] is not None:
+                kwargs = {**transform_config[tfm_name], **kwargs}
 
     allowed_kwargs = inspect.signature(transform.__init__).parameters.keys()  # type: ignore
     if "keys" not in kwargs.keys():

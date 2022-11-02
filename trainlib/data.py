@@ -53,7 +53,7 @@ class DataLoader(MonaiDataLoader):
             segmentations masks have same shape and orientations as images. Should be
             identity function of labels are str.
         """
-        from .viewer import ListViewer
+        from trainlib.viewer import ListViewer
 
         batch = first(self)
         image = batch[image_key]
