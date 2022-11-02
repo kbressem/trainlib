@@ -8,7 +8,6 @@ import requests
 import torch
 import yaml
 from monai.utils.type_conversion import convert_to_tensor
-import munch
 
 logger = logging.getLogger(__name__)
 

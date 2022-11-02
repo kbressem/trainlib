@@ -5,7 +5,6 @@ import monai
 import munch
 from monai.transforms import Compose
 from monai.utils.enums import CommonKeys
-import munch
 
 from trainlib.utils import import_patched
 
@@ -27,7 +26,8 @@ def get_transform(tfm_name: str, config: munch.Munch, **kwargs):
             for k in kwargs.keys():
                 if k in transform_config[tfm_name].keys():
                     transform_config[tfm_name].pop(k)
-            kwargs = {**transform_config[tfm_name], **kwargs}
+            if transform_config[tfm_name] is not None:
+                kwargs = {**transform_config[tfm_name], **kwargs}
 
     allowed_kwargs = inspect.signature(transform.__init__).parameters.keys()  # type: ignore
     if "keys" not in kwargs.keys():

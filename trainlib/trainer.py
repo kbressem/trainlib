@@ -1,7 +1,8 @@
 import shutil
+from copy import deepcopy
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
-from copy import deepcopy
+
 import ignite
 import monai
 import munch
@@ -23,7 +24,6 @@ from monai.handlers import (
 )
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
-import munch
 
 from trainlib import loss, model, optimizer
 from trainlib.data import segmentation_dataloaders
@@ -65,7 +65,7 @@ def pred_logger(engine):
     epoch = engine.state.epoch
     root = Path(engine.config.out_dir) / "preds"
     if not root.exists():
-        root.makedir()
+        root.mkdir()
         torch.save(engine.state.output[0]["label"], root / "label.pt")
         torch.save(engine.state.output[0]["image"], root / "image.pt")
 
