@@ -313,9 +313,9 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         if Path(self.config.log_dir).exists():
             shutil.rmtree(self.config.log_dir)
 
-        self.config.out_dir.mkdir(exist_ok=True, parents=True)
-        self.config.log_dir.mkdir(exist_ok=True, parents=True)
-        self.config.model_dir.mkdir(exist_ok=True, parents=True)
+        Path(self.config.out_dir).mkdir(exist_ok=True, parents=True)
+        Path(self.config.log_dir).mkdir(exist_ok=True, parents=True)
+        Path(self.config.model_dir).mkdir(exist_ok=True, parents=True)
 
     def _backup_library_and_configuration(self) -> None:
         """Copy entire library and patches, making everything 100% reproducible"""
