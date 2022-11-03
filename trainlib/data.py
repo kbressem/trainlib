@@ -1,5 +1,6 @@
 """Build DataLoaders, build datasets, adapt paths, handle CSV files"""
 
+import logging
 import shutil
 from collections import namedtuple
 from functools import partial
@@ -16,6 +17,8 @@ from tqdm import tqdm
 
 from trainlib import transforms
 from trainlib.utils import num_workers
+
+logger = logging.getLogger(__name__)
 
 
 def import_dataset(config: munch.Munch):
@@ -38,6 +41,8 @@ def import_dataset(config: munch.Munch):
 
 class DataLoader(MonaiDataLoader):
     """Overwrite monai DataLoader for enhanced viewing and debugging capabilities"""
+
+    logger = logger
 
     def show_batch(
         self,
@@ -105,21 +110,30 @@ class DataLoader(MonaiDataLoader):
             try:
                 out = transforms(data_dict)
             except Exception as e:
-                print(data_dict)
-                print(f"Exception: {e} raised")
+                self.logger.error(f"[ERROR] Exception: {e} raised")
+                self.logger.error(data_dict)
             else:
                 if not isinstance(out, list):
                     out = [out]
                 for item in out:
                     image_fn = item["image"].meta["filename_or_obj"]
                     label_fn = item["label"].meta["filename_or_obj"]
-                    if not item["image"].shape == item["label"].shape:
-                        f"shape missmatch found for {image_fn} and {label_fn}"
+                    image_shape = item["image"].shape
+                    label_shape = item["label"].shape
+                    if not image_shape == label_shape:
+                        self.logger.error(
+                            f"[ERROR] shape missmatch found for {image_fn} ({image_shape})"
+                            f" and {label_fn} ({label_shape})"
+                        )
+                    if max(image_shape) > 1000 or max(label_shape) > 1000:
+                        self.logger.warning("[WARNING] At least one dimension in your image or lables is very large:")
+                        self.logger.warning(f"[WARNING] {image_shape} in file {image_fn}")
+                        self.logger.warning(f"[WARNING] {label_shape} in file {label_fn}")
                     unique_labels += item["label"].unique().tolist()
 
-        print("Frequency of label values:")
+        self.logger.info("[INFO] Frequency of label values:")
         for value in set(unique_labels):
-            print(f"value {value} appears in {unique_labels.count(value)} items in the dataset")
+            self.logger.info(f"[INFO] value {value} appears in {unique_labels.count(value)} items in the dataset")
 
 
 def segmentation_dataloaders(
