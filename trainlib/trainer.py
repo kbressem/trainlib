@@ -1,7 +1,8 @@
 import shutil
+from copy import deepcopy
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
-from copy import deepcopy
+
 import ignite
 import monai
 import munch
@@ -65,7 +66,7 @@ def pred_logger(engine):
     epoch = engine.state.epoch
     root = Path(engine.config.out_dir) / "preds"
     if not root.exists():
-        root.makedir()
+        root.mkdir()
         torch.save(engine.state.output[0]["label"], root / "label.pt")
         torch.save(engine.state.output[0]["image"], root / "image.pt")
 
@@ -312,6 +313,10 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         # delete old log_dir
         if Path(self.config.log_dir).exists():
             shutil.rmtree(self.config.log_dir)
+
+        Path(self.config.out_dir).mkdir(exist_ok=True, parents=True)
+        Path(self.config.log_dir).mkdir(exist_ok=True, parents=True)
+        Path(self.config.model_dir).mkdir(exist_ok=True, parents=True)
 
     def _backup_library_and_configuration(self) -> None:
         """Copy entire library and patches, making everything 100% reproducible"""
