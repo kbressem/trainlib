@@ -9,6 +9,7 @@ assert parse_version(setuptools.__version__) >= parse_version("36.2")
 config = ConfigParser(delimiters=["="])
 config.read("setup.cfg")
 cfg = config["SETUP"]
+version = config["bumpversion"]["current_version"]
 
 min_python = cfg["min_python"]
 
@@ -23,6 +24,6 @@ setuptools.setup(
     install_requires=requirements,
     python_requires=">=" + cfg["min_python"],
     zip_safe=False,
-    version=cfg["version"],
+    version=version,
     entry_points={"console_scripts": cfg.get("console_scripts", "").split()},
 )
