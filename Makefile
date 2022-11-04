@@ -27,13 +27,13 @@ clean:
 	python3 -Bc "import pathlib; [p.rmdir() for p in pathlib.Path('.').rglob('__pycache__')]"
 	python3 -Bc "import shutil, pathlib; [shutil.rmtree(p) for p in pathlib.Path('.').rglob('.ipynb_checkpoints')]"
 
-major: 
+major_release: 
 	bump2version major trainlib/__init__.py
 
-minor: 
+minor_release: 
 	bump2version minor trainlib/__init__.py
 
-patch: 
+patch_release: 
 	bump2version patch trainlib/__init__.py
 
 
