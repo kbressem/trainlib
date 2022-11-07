@@ -50,9 +50,9 @@ optimizer:
 training:
   early_stopping_patience: 250
   max_epochs: 1500
-# Create transforms pipeline.
+# Create transforms pipeline
 # base: applied to train/valid/test data. Use this for general image normalization
-# train: only applied to train data, use this for augmentation.
+# train: only applied to train data, use this for augmentation
 # valid: only applied to valid data
 transforms:
   prob: 0.1
@@ -75,7 +75,7 @@ transforms:
       pos: 1
       spatial_size: [96, 96, 96]
   postprocessing:
-    # add optional post processing transforms.
+    # add optional post processing transforms
     KeepLargestConnectedComponentd:
       keys: pred
 # Monkey-patch different functionalities of trainlib
@@ -91,5 +91,5 @@ transforms:
 #   Should provide a get_optimizer function. Overwrites above specified optimizer
 patch:
   transforms: path/to/patch/transforms.py # to load CustomPatchedTransform from
-# Provide API-key and personal-key in credential file to recieve training updates after every epoch
+# Provide API-key and personal-key in credential file to receieve training updates after every epoch
 pushover_credentials: /path/to/.pushover_credentials.yaml
