@@ -7,8 +7,8 @@ log_dir: logs
 model_dir: models
 out_dir: output
 ndim: 3 # Image dimensions
-seed: 42 # set seed for determinism.
-# data confidurations
+seed: 42 # set seed for determinism
+# data configurations
 data:
   data_dir: /path/where/data/is/stored
   train_csv: train.csv # should give paths to files, relative to `data_dir`
