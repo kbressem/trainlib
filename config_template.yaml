@@ -23,7 +23,7 @@ data:
   dataset_type: persistent # iterative or persistend (caches transforms on disk for large speedup)
   cache_dir: .monai-cache # cache dir for persistent dataset, otherwise ignored
   batch_size: 1
-# Use every loss function from monai.losses
+# Use any loss function from monai.losses
 loss:
   DiceFocalLoss:
     include_background: true
