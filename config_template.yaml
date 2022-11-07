@@ -7,8 +7,8 @@ log_dir: logs
 model_dir: models
 out_dir: output
 ndim: 3 # Image dimensions
-seed: 42 # set seed for determinism.
-# data confidurations
+seed: 42 # set seed for determinism
+# data configurations
 data:
   data_dir: /path/where/data/is/stored
   train_csv: train.csv # should give paths to files, relative to `data_dir`
@@ -17,13 +17,13 @@ data:
   # col names of the image and label files. Pass multiple names as list
   image_cols: [image_1, image_2]
   label_cols: [label]
-  train: true # Use trainig dataset
+  train: true # Use training dataset
   valid: true
   test: false
-  dataset_type: persistent # iterative or persistend (chaches transforms on disk for large speedup)
+  dataset_type: persistent # iterative or persistent (caches transforms on disk for large speedup)
   cache_dir: .monai-cache # cache dir for persistent dataset, otherwise ignored
   batch_size: 1
-# Use every loss function from monai.losses
+# Use any loss function from monai.losses
 loss:
   DiceFocalLoss:
     include_background: true
@@ -50,9 +50,9 @@ optimizer:
 training:
   early_stopping_patience: 250
   max_epochs: 1500
-# Create transforms pipeline.
+# Create transforms pipeline
 # base: applied to train/valid/test data. Use this for general image normalization
-# train: only applied to train data, use this for augmentation.
+# train: only applied to train data, use this for augmentation
 # valid: only applied to valid data
 transforms:
   prob: 0.1
@@ -75,7 +75,7 @@ transforms:
       pos: 1
       spatial_size: [96, 96, 96]
   postprocessing:
-    # add optional post processing transforms.
+    # add optional post processing transforms
     KeepLargestConnectedComponentd:
       keys: pred
 # Monkey-patch different functionalities of trainlib
@@ -91,5 +91,5 @@ transforms:
 #   Should provide a get_optimizer function. Overwrites above specified optimizer
 patch:
   transforms: path/to/patch/transforms.py # to load CustomPatchedTransform from
-# Provide API-key and personal-key in credential file to recieve training updates after every epoch
+# Provide API-key and personal-key in credential file to receieve training updates after every epoch
 pushover_credentials: /path/to/.pushover_credentials.yaml
