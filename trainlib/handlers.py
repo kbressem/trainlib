@@ -8,7 +8,6 @@ import requests
 import torch
 import yaml
 from monai.utils.type_conversion import convert_to_tensor
-import munch
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +163,8 @@ class DebugHandler:
 
     def check_loss_and_n_classes(self, engine: ignite.engine.Engine):
         try:
-            n_classes = self.config.model.out_channels
+            model_name = list(self.config.model.keys())[0]
+            n_classes = self.config.model[model_name].out_channels
         except AttributeError:
             self.logger.info("`out_channels` not in config.model " "Cannot check if model output fits to loss function")
         labels = convert_to_tensor(engine.state.batch["label"])  # type: ignore

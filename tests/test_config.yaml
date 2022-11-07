@@ -23,13 +23,14 @@ lr_scheduler:
   OneCycleLR:
     max_lr: 0.0001
 model:
-  act: PRELU
-  channels: [16, 32]
-  dropout: 0.1
-  norm: BATCH
-  num_res_units: 1
-  out_channels: 2 # bg, label
-  strides: [2]
+  UNet:
+    act: PRELU
+    channels: [16, 32]
+    dropout: 0.1
+    norm: BATCH
+    num_res_units: 1
+    out_channels: 2 # bg, label
+    strides: [2]
 model_dir: models
 ndim: 3
 optimizer:
