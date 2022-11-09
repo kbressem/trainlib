@@ -71,7 +71,7 @@ class BasicViewer:
     Args:
         x: main image object to view as rank 3 tensor
         y: either a segmentation mask as as rank 3 tensor or a label as str.
-        prediction: a class predicton as str
+        prediction: a class prediction as str
         description: description of the whole image
         figsize: size of image, passed as plotting argument
         cmap: colormap for the image
@@ -333,7 +333,7 @@ class DicomExplorer(BasicViewer):
 
 
 class ListViewer:
-    """Display multipple images with their masks or labels/predictions.
+    """Display multiple images with their masks or labels/predictions.
     Arguments:
         x (tuple, list): Tensor objects to view
         y (tuple, list): Tensor objects (in case of segmentation task) or class labels as string.
