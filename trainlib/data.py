@@ -67,20 +67,32 @@ class DataLoader(MonaiDataLoader):
         image = batch[image_key]
         label = batch[label_key]
         b, c, w, h, d = image.shape
+        new_shape = b * c, w, h, d
+
+        # should_display_label_as_segm = True: means segmentation setting
+        # should_display_label_as_segm = False: means classification setting
+        should_display_label_as_segm = label.ndim != 1
+
+        if should_display_label_as_segm:
         if label.shape[1] == 1:
             label = torch.stack([label] * c, 1)
         elif label.shape[1] == c:
             pass
         else:
             raise NotImplementedError(
-                f"`show_batch` not implemented for label with {label.shape[0]}" f" channels if image has {c} channels"
+                    f"`show_batch` not implemented for label with {label.shape[0]}"
+                    f" channels if image has {c} channels"
             )
-        image = torch.unbind(image.reshape(b * c, w, h, d), 0)
-        label = torch.unbind(label.reshape(b * c, w, h, d), 0)
+            label = torch.unbind(label.reshape(new_shape), 0)
 
+        image = torch.unbind(image.reshape(new_shape), 0)
+
+        y = [label_transform(im) for im in label] if should_display_label_as_segm else None
+        prediction = None if should_display_label_as_segm else [label_transform(im) for im in label]
         ListViewer(
             [image_transform(im) for im in image],
-            [label_transform(im) for im in label],
+            y,
+            prediction=prediction,
             **kwargs,
         ).show()
 
