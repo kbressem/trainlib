@@ -8,7 +8,7 @@ import SimpleITK as sitk  # noqa N813
 
 
 def resample_to_ras_and_spacing(
-    image: sitk.Image, spacing: List[int] = None, method: int = sitk.sitkLinear
+    image: sitk.Image, spacing: Optional[List[int]] = None, method: int = sitk.sitkLinear
 ) -> sitk.Image:
     """Resample an image to direction (1,0,0,0,1,0,0,0,1) specified spacing"""
 
