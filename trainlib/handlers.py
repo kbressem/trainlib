@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Optional, List
+from typing import List, Optional
 
 import ignite
 import munch

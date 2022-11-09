@@ -4,6 +4,7 @@ import shutil
 from collections import namedtuple
 from functools import partial
 from pathlib import Path
+from typing import Optional
 
 import munch
 import pandas as pd
@@ -13,7 +14,6 @@ from monai.utils import first
 
 from trainlib import transforms
 from trainlib.utils import num_workers
-from typing import Optional
 
 
 def import_dataset(config: munch.Munch):
