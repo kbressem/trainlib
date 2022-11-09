@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List
+from typing import Optional, List
 
 import ignite
 import munch
@@ -189,7 +189,7 @@ class DebugHandler:
         unique = len(torch.unique(x))
         return [shape, mean, std, min, max, unique]
 
-    def _table_row(self, items: List = None) -> str:
+    def _table_row(self, items: Optional[List] = None) -> str:
         "Create table row with colwidth of 18 and colspacing of 2"
         if items is None:  # print header
             items = ["item", "shape", "mean", "std", "min", "max", "unique val"]

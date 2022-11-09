@@ -13,6 +13,7 @@ from monai.utils import first
 
 from trainlib import transforms
 from trainlib.utils import num_workers
+from typing import Optional
 
 
 def import_dataset(config: munch.Munch):
@@ -79,9 +80,9 @@ class DataLoader(MonaiDataLoader):
 
 def segmentation_dataloaders(
     config: munch.Munch,
-    train: bool = None,
-    valid: bool = None,
-    test: bool = None,
+    train: Optional[bool] = None,
+    valid: Optional[bool] = None,
+    test: Optional[bool] = None,
 ):
     """Create segmentation dataloaders
     Args:
