@@ -74,15 +74,15 @@ class DataLoader(MonaiDataLoader):
         should_display_label_as_segm = label.ndim != 1
 
         if should_display_label_as_segm:
-        if label.shape[1] == 1:
-            label = torch.stack([label] * c, 1)
-        elif label.shape[1] == c:
-            pass
-        else:
-            raise NotImplementedError(
+            if label.shape[1] == 1:
+                label = torch.stack([label] * c, 1)
+            elif label.shape[1] == c:
+                pass
+            else:
+                raise NotImplementedError(
                     f"`show_batch` not implemented for label with {label.shape[0]}"
                     f" channels if image has {c} channels"
-            )
+                )
             label = torch.unbind(label.reshape(new_shape), 0)
 
         image = torch.unbind(image.reshape(new_shape), 0)
