@@ -150,7 +150,7 @@ class BasicViewer:
             else:
                 y_label = _create_label(label)
         else:
-            y_label = _create_label(" ")
+            y_label = _create_label(self.prediction)
 
         slice_slider = _create_slider(
             slider_min=min(self.slice_range),
@@ -337,7 +337,7 @@ class ListViewer:
     Arguments:
         x (tuple, list): Tensor objects to view
         y (tuple, list): Tensor objects (in case of segmentation task) or class labels as string.
-        predictions (str): Class predictions
+        prediction (str): Class predictions
         description: description of the whole image
         figsize: size of image, passed as plotting argument
         cmap: colormap for display of `x`
@@ -348,7 +348,7 @@ class ListViewer:
         self,
         x: Union[List, Tuple],
         y=None,
-        prediction: str = None,
+        prediction: List[str] = None,
         description: str = None,
         figsize=(4, 4),
         cmap: str = "bone",
