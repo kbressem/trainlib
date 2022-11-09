@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import ipywidgets
 import matplotlib.pyplot as plt
@@ -84,9 +84,9 @@ class BasicViewer:
     def __init__(
         self,
         x: NdarrayOrTensor,
-        y: NdarrayOrTensor = None,
-        prediction: str = None,
-        description: str = None,
+        y: Optional[NdarrayOrTensor] = None,
+        prediction: Optional[str] = None,
+        description: Optional[str] = None,
         figsize=(3, 3),
         cmap: str = "bone",
         mask_alpha=0.25,
@@ -348,8 +348,8 @@ class ListViewer:
         self,
         x: Union[List, Tuple],
         y=None,
-        prediction: str = None,
-        description: str = None,
+        prediction: Optional[str] = None,
+        description: Optional[str] = None,
         figsize=(4, 4),
         cmap: str = "bone",
         max_n=9,

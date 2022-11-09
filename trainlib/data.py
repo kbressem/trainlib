@@ -138,9 +138,9 @@ class DataLoader(MonaiDataLoader):
 
 def segmentation_dataloaders(
     config: munch.Munch,
-    train: bool = None,
-    valid: bool = None,
-    test: bool = None,
+    train: Optional[bool] = None,
+    valid: Optional[bool] = None,
+    test: Optional[bool] = None,
 ):
     """Create segmentation dataloaders
     Args:
