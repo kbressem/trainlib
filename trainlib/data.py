@@ -1,6 +1,7 @@
 """Build DataLoaders, build datasets, adapt paths, handle CSV files"""
 
 import logging
+import pathlib
 import shutil
 from collections import namedtuple
 from functools import partial
@@ -199,7 +200,18 @@ def segmentation_dataloaders(
         train_df = train_df.sample(10)
         valid_df = valid_df.sample(5)
 
-    for col in image_cols + label_cols:
+    # Assemble columns that contain a path
+    path_cols = image_cols
+    for col in label_cols:
+        try:
+            path = train_df[col][0]
+            path = Path(path)
+        except (KeyError, TypeError):
+            continue
+        if isinstance(path, pathlib.PurePath):
+            path_cols.append(col)
+
+    for col in path_cols:
         # create absolute file name from relative fn in df and data_dir
         train_df[col] = data_dir / train_df[col]
         valid_df[col] = data_dir / valid_df[col]
