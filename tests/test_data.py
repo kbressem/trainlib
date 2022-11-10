@@ -1,3 +1,4 @@
+import logging
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,6 +8,8 @@ from monai.data import DataLoader
 from test_utils import TEST_CONFIG
 
 from trainlib.data import import_dataset, segmentation_dataloaders
+
+logger = logging.getLogger(__name__)
 
 
 class TestDatasetInit(unittest.TestCase):
@@ -49,6 +52,11 @@ class TestSegmentationDataLoaders(unittest.TestCase):
         dataloaders = segmentation_dataloaders(self.config)
         self.assertTrue(hasattr(dataloaders[0], "show_batch"))
         self.assertTrue(hasattr(dataloaders[1], "show_batch"))
+
+    def test_sanity_check(self):
+        train_dataloader = segmentation_dataloaders(self.config)[0]
+        with self.assertLogs("trainlib", level="INFO") as cm:  # noqa F841
+            train_dataloader.sanity_check(task="segmentation", sample_size=2)
 
 
 if __name__ == "__main__":
