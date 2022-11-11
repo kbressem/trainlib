@@ -55,7 +55,7 @@ class TestSegmentationDataLoaders(unittest.TestCase):
 
     def test_sanity_check(self):
         train_dataloader = segmentation_dataloaders(self.config)[0]
-        with self.assertLogs("trainlib", level="INFO") as cm:  # noqa F841
+        with self.assertLogs("trainlib", level="INFO") as _:
             train_dataloader.sanity_check(task="segmentation", sample_size=2)
 
 
