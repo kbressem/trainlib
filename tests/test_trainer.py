@@ -57,8 +57,6 @@ class TestSegmentationTrainer(unittest.TestCase):
         # check model dir is not empty
         self.assertIsNotNone(next(Path("models").iterdir(), None))
 
-
-
     def assertPathExists(self, fn: str, is_file: bool = False):  # noqa N802
         path = Path(fn)
         assert path.exists(), f"File does not exist: {fn}"
