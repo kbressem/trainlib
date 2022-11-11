@@ -93,20 +93,6 @@ def get_val_transforms(config: munch.Munch) -> Compose:
     tfms = get_base_transforms(config=config)
     tfms += [
         get_transform("EnsureTyped", config=config),
-        get_transform(
-            "ScaleIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            minv=0,
-            maxv=1,
-            allow_missing_keys=True,
-        ),
-        get_transform(
-            "NormalizeIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            allow_missing_keys=True,
-        ),
     ]
     if "valid" in config.transforms.keys():
         tfm_names = list(config.transforms.valid)
@@ -136,20 +122,12 @@ def get_test_transforms(config: munch.Munch) -> Compose:
     tfms = get_base_transforms(config=config)
     tfms += [
         get_transform("EnsureTyped", config=config, allow_missing_keys=True),
-        get_transform(
-            "ScaleIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            minv=0,
-            maxv=1,
-            allow_missing_keys=True,
-        ),
-        get_transform(
-            "NormalizeIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            allow_missing_keys=True,
-        ),
+    ]
+    if "test" in config.transforms.keys():
+        tfm_names = list(config.transforms.test)
+        tfms += [get_transform(tn, config) for tn in tfm_names]
+
+    tfms += [
         get_transform(
             "ConcatItemsd",
             config=config,
