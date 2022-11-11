@@ -10,6 +10,12 @@ from trainlib.trainer import SegmentationTrainer
 class TestSegmentationTrainer(unittest.TestCase):
     config = TEST_CONFIG
 
+    def tearDown(self) -> None:
+        shutil.rmtree(self.config.run_id.split("/")[0])
+        shutil.rmtree(self.config.model_dir)
+        shutil.rmtree(self.config.data.cache_dir)
+        super().tearDown()
+
     def test_in_order(self):
         self._test_one_epoch()
         self._test_folder_structure()
@@ -51,16 +57,11 @@ class TestSegmentationTrainer(unittest.TestCase):
         # check model dir is not empty
         self.assertIsNotNone(next(Path("models").iterdir(), None))
 
-        # cleanup
-        shutil.rmtree(self.config.run_id.split("/")[0])
-        shutil.rmtree(self.config.model_dir)
-        shutil.rmtree(self.config.data.cache_dir)
+
 
     def assertPathExists(self, fn: str, is_file: bool = False):  # noqa N802
         path = Path(fn)
-
-        if not path.exists():
-            raise AssertionError(f"File does not exist: {fn}")
+        assert path.exists(), f"File does not exist: {fn}"
         if is_file and not path.is_file():
             raise AssertionError(f"{fn} exists but does not point towards a file.")
 

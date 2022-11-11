@@ -1,4 +1,3 @@
-import logging
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,8 +7,6 @@ from monai.data import DataLoader
 from test_utils import TEST_CONFIG
 
 from trainlib.data import import_dataset, segmentation_dataloaders
-
-logger = logging.getLogger(__name__)
 
 
 class TestDatasetInit(unittest.TestCase):
