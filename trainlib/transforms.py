@@ -150,22 +150,19 @@ def get_test_transforms(config: munch.Munch) -> Compose:
 
 def get_post_transforms(config: munch.Munch):
     """Transforms applied to the model output, before metrics are calculated"""
+
+    model_name = list(config.model.keys())[0]
+    out_channels = config.model[model_name].out_channels
+
     tfms = [
         get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]),
         get_transform(
             "AsDiscreted",
             config=config,
-            keys=CommonKeys.PRED,
-            argmax=True,
-            to_onehot=config.model.out_channels,
-            num_classes=config.model.out_channels,
-        ),
-        get_transform(
-            "AsDiscreted",
-            config=config,
-            keys=CommonKeys.LABEL,
-            to_onehot=config.model.out_channels,
-            num_classes=config.model.out_channels,
+            keys=[CommonKeys.PRED, CommonKeys.LABEL],
+            argmax=[True, False],
+            to_onehot=out_channels,
+            num_classes=out_channels,
         ),
     ]
 

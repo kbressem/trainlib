@@ -323,9 +323,10 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         run_id = Path(self.config.run_id)
         shutil.copytree(dir_name, str(run_id / "trainlib"), dirs_exist_ok=True)
         (run_id / "patch").mkdir(exist_ok=True)
-        for k in self.config.patch.keys():
-            fn = run_id / "patch" / f"{k}.py"
-            shutil.copy(self.config.patch[k], str(fn))
+        if "patch" in self.config.keys():
+            for k in self.config.patch.keys():
+                fn = run_id / "patch" / f"{k}.py"
+                shutil.copy(self.config.patch[k], str(fn))
 
         # also save all modules and versions in current environment
         # OPTIMIZE: save only modules relevant for this training

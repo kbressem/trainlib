@@ -1,8 +1,8 @@
 data:
   data_dir: ../data/
-  train_csv: ../data/test_data.csv
-  valid_csv: ../data/test_data.csv
-  test_csv: ../data/test_data.csv
+  train_csv: ../data/test_data_train.csv
+  valid_csv: ../data/test_data_valid.csv
+  test_csv: ../data/test_data_valid.csv
   image_cols: [image]
   label_cols: [label]
   train: True
@@ -42,8 +42,8 @@ overwrite: true
 run_id: runs/name
 seed: 42
 training:
-  early_stopping_patience: 2
-  max_epochs: 2
+  early_stopping_patience: 1
+  max_epochs: 1
 transforms:
   base:
     LoadImaged:
