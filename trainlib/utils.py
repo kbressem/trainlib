@@ -25,7 +25,7 @@ def load_config(fn: str = "config.yaml") -> munch.Munch:
 
     if not config.overwrite:
         i = 0
-        while (Path(f"{config.run_id}_{i}").exists():
+        while Path(f"{config.run_id}_{i}").exists():
             i += 1
         config.run_id += f"_{i}"
 
