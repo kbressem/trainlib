@@ -122,7 +122,7 @@ class DataLoader(MonaiDataLoader):
             try:
                 out = transforms(data_dict)
             except Exception as e:
-                self.logger.error(f"[ERROR] Exception: {e} raised")
+                self.logger.error(f"Exception: {e} raised")
                 self.logger.error(data_dict)
             else:
                 if not isinstance(out, list):
@@ -134,18 +134,19 @@ class DataLoader(MonaiDataLoader):
                     label_shape = item["label"].shape
                     if not image_shape == label_shape:
                         self.logger.error(
-                            f"[ERROR] shape missmatch found for {image_fn} ({image_shape})"
-                            f" and {label_fn} ({label_shape})"
+                            f"Shape missmatch found for {image_fn} ({image_shape})" f" and {label_fn} ({label_shape})"
                         )
                     if max(image_shape) > 1000 or max(label_shape) > 1000:
-                        self.logger.warning("[WARNING] At least one dimension in your image or lables is very large:")
-                        self.logger.warning(f"[WARNING] {image_shape} in file {image_fn}")
-                        self.logger.warning(f"[WARNING] {label_shape} in file {label_fn}")
+                        self.logger.warning(
+                            "At least one dimension in your image or lables is very large: "
+                            f"{image_shape} in file {image_fn} "
+                            f"{label_shape} in file {label_fn}"
+                        )
                     unique_labels += item["label"].unique().tolist()
 
-        self.logger.info("[INFO] Frequency of label values:")
+        self.logger.info("Frequency of label values:")
         for value in set(unique_labels):
-            self.logger.info(f"[INFO] value {value} appears in {unique_labels.count(value)} items in the dataset")
+            self.logger.info(f"Value {value} appears in {unique_labels.count(value)} items in the dataset")
 
 
 def segmentation_dataloaders(

@@ -19,7 +19,7 @@ class TestPushNotificationHandler(unittest.TestCase):
         except AttributeError:
             pass
 
-        with self.assertLogs("trainlib", level="WARNING") as cm:  # noqa F841
+        with self.assertLogs("trainlib", level="WARNING") as _:
             handler = PushnotificationHandler(self.config)
             self.assertFalse(handler.enable_notifications)
 
@@ -75,7 +75,7 @@ class TestDebugHandler(unittest.TestCase):
         self._prepare_engine_state()
         # out_channels and number of classes do not fit
         handler = DebugHandler(self.config)
-        with self.assertLogs("trainlib", level="ERROR") as cm:  # noqa F841
+        with self.assertLogs("trainlib", level="ERROR") as cm:
             handler.check_loss_and_n_classes(self.engine)
             self.assertTrue(
                 "There are more unique values in the labels than there are `out_channels`." in str(cm.output)
@@ -84,7 +84,7 @@ class TestDebugHandler(unittest.TestCase):
         # value of classes do not fit -> will make problems with one-hot conversion
         self.config.model.out_classes = 3
         self.engine.state.batch["label"] *= 2
-        with self.assertLogs("trainlib", level="ERROR") as cm:  # noqa F841
+        with self.assertLogs("trainlib", level="ERROR") as cm:
             handler.check_loss_and_n_classes(self.engine)
             self.assertTrue("The maximum value of labels is higher than `out_channels`." in str(cm.output))
 
@@ -94,7 +94,7 @@ class TestDebugHandler(unittest.TestCase):
         self._prepare_engine_state()
         # out_channels and number of classes do not fit
         handler = DebugHandler(self.config)
-        with self.assertLogs("trainlib", level="INFO") as cm:  # noqa F841
+        with self.assertLogs("trainlib", level="INFO") as cm:
             handler.batch_statistics(self.engine)
             keys_or_metrics = [
                 "image",
