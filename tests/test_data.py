@@ -50,6 +50,11 @@ class TestSegmentationDataLoaders(unittest.TestCase):
         self.assertTrue(hasattr(dataloaders[0], "show_batch"))
         self.assertTrue(hasattr(dataloaders[1], "show_batch"))
 
+    def test_sanity_check(self):
+        train_dataloader = segmentation_dataloaders(self.config)[0]
+        with self.assertLogs("trainlib", level="INFO") as _:
+            train_dataloader.sanity_check(task="segmentation", sample_size=2)
+
 
 if __name__ == "__main__":
     unittest.main()

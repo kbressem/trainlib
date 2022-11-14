@@ -93,20 +93,6 @@ def get_val_transforms(config: munch.Munch) -> Compose:
     tfms = get_base_transforms(config=config)
     tfms += [
         get_transform("EnsureTyped", config=config),
-        get_transform(
-            "ScaleIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            minv=0,
-            maxv=1,
-            allow_missing_keys=True,
-        ),
-        get_transform(
-            "NormalizeIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            allow_missing_keys=True,
-        ),
     ]
     if "valid" in config.transforms.keys():
         tfm_names = list(config.transforms.valid)
@@ -136,20 +122,12 @@ def get_test_transforms(config: munch.Munch) -> Compose:
     tfms = get_base_transforms(config=config)
     tfms += [
         get_transform("EnsureTyped", config=config, allow_missing_keys=True),
-        get_transform(
-            "ScaleIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            minv=0,
-            maxv=1,
-            allow_missing_keys=True,
-        ),
-        get_transform(
-            "NormalizeIntensityd",
-            config=config,
-            keys=config.data.image_cols,
-            allow_missing_keys=True,
-        ),
+    ]
+    if "test" in config.transforms.keys():
+        tfm_names = list(config.transforms.test)
+        tfms += [get_transform(tn, config) for tn in tfm_names]
+
+    tfms += [
         get_transform(
             "ConcatItemsd",
             config=config,
@@ -172,22 +150,19 @@ def get_test_transforms(config: munch.Munch) -> Compose:
 
 def get_post_transforms(config: munch.Munch):
     """Transforms applied to the model output, before metrics are calculated"""
+
+    model_name = list(config.model.keys())[0]
+    out_channels = config.model[model_name].out_channels
+
     tfms = [
         get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]),
         get_transform(
             "AsDiscreted",
             config=config,
-            keys=CommonKeys.PRED,
-            argmax=True,
-            to_onehot=config.model.out_channels,
-            num_classes=config.model.out_channels,
-        ),
-        get_transform(
-            "AsDiscreted",
-            config=config,
-            keys=CommonKeys.LABEL,
-            to_onehot=config.model.out_channels,
-            num_classes=config.model.out_channels,
+            keys=[CommonKeys.PRED, CommonKeys.LABEL],
+            argmax=[True, False],
+            to_onehot=out_channels,
+            num_classes=out_channels,
         ),
     ]
 
