@@ -1,4 +1,4 @@
-from typing import Iterable, List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import ipywidgets
 import matplotlib.pyplot as plt
@@ -375,8 +375,8 @@ class ListViewer:
 
     def __init__(
         self,
-        x: Iterable[NdarrayOrTensor],
-        y: Optional[Iterable[Union[NdarrayOrTensor, str]]] = None,
+        x: Union[List[NdarrayOrTensor], Tuple],
+        y: Optional[List[Union[NdarrayOrTensor, str]]] = None,
         prediction: Optional[List[str]] = None,
         description: Optional[List[str]] = None,
         figsize=(4, 4),
@@ -389,9 +389,9 @@ class ListViewer:
         x = x[0:max_n]
         if y is not None:
             y = ensure_tuple(y, wrap_array=True)  # type: ignore
-            if len(x) != len(y):
-                raise ValueError(f"Number of images ({len(x)}) and labels ({len(y)}) doesn't match")
-            y = y[0:max_n]
+            if len(x) != len(y):  # type: ignore
+                raise ValueError(f"Number of images ({len(x)}) and labels ({len(y)}) doesn't match")  # type: ignore
+            y = y[0:max_n]  # type: ignore
 
         self.x = x
         self.y = y
