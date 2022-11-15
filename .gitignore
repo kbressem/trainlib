@@ -157,3 +157,10 @@ cython_debug/
 
 # Mac stuff
 .DS_Store
+
+# Folders and files trainlib creates during runs
+runs/
+.monai-cache
+*.pt 
+*.pth
+models

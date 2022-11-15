@@ -7,6 +7,7 @@ import torch
 from IPython.display import display
 from ipywidgets import widgets
 from monai.config.type_definitions import NdarrayOrTensor
+from monai.transforms.utils import ensure_tuple
 from monai.utils import convert_to_numpy
 
 
@@ -65,6 +66,12 @@ def _create_togglebutton(description: str, value: int, **kwargs) -> ipywidgets.w
     return button
 
 
+class ShapeMissmatchError(Exception):
+    def __init__(self, a, b):
+        message = f"Shapes of x {a.shape} and y {b.shape} do not match."
+        super().__init__(message)
+
+
 class BasicViewer:
     """Base class for viewing TensorDicom3D objects.
 
@@ -77,6 +84,7 @@ class BasicViewer:
         cmap: colormap for the image
         mask_alpha: set transparency of segmentation mask, if one is provided
         background_threshold: Values below this are shown as fully transparent
+        mode: if `RGB` a three channel 2D image is plotted as 2d color image. Otherwise ignored
     Returns:
         Instance of BasicViewer
     """
@@ -84,42 +92,59 @@ class BasicViewer:
     def __init__(
         self,
         x: NdarrayOrTensor,
-        y: Optional[NdarrayOrTensor] = None,
+        y: Optional[Union[NdarrayOrTensor, str]] = None,
         prediction: Optional[str] = None,
         description: Optional[str] = None,
         figsize=(3, 3),
         cmap: str = "bone",
         mask_alpha=0.25,
         background_threshold=0.05,
+        mode: Optional[str] = None,
     ):
         x = np.squeeze(convert_to_numpy(x))
-        assert x.ndim == 3, f"x.ndim needs to be equal to but is {x.ndim}"
-        if y is not None:
+        x = self._ensure_correct_dims(x)  # type: ignore
+
+        if isinstance(y, (torch.Tensor, np.ndarray)):
             y = np.squeeze(convert_to_numpy(y))
-            assert x.shape == y.shape, f"Shapes of x {x.shape} and y {y.shape} do not match"  # type: ignore
+            y = self._ensure_correct_dims(y)  # type: ignore
+
+            if (x.shape[-2:] != y.shape[-2:]) or (mode != "RGB" and x.shape != y.shape):
+                raise ShapeMissmatchError(x, y)
             self.with_mask = True
         else:
+            if isinstance(y, (float, int)):
+                y = str(y)
             self.with_mask = False
+
+        if prediction is not None:
+            prediction = str(prediction)
+
         self.x = x
         self.y = y
         self.prediction = prediction
         self.description = description
         self.figsize = figsize
-        self.cmap = cmap
-        self.slice_range = (1, len(x))  # len(x) == im.shape[0]
+        self.cmap = cmap if mode != "RGB" else None
+        self.slice_range = (1, 1) if mode == "RGB" and len(x) == 3 else (1, len(x))  # len(x) == im.shape[0]
         self.mask_alpha = mask_alpha
         self.background_threshold = background_threshold
+        self.mode = mode
 
     def _plot_slice(self, im_slice, with_mask, px_range):
         "Plot slice of image"
         fig, ax = plt.subplots(1, 1, figsize=self.figsize)
+
+        if self.mode == "RGB" and self.x.shape[0] == 4:
+            image_slice = self.x.clip(*px_range)
+        else:
+            image_slice = self.x[im_slice - 1, :, :].clip(*px_range)
         ax.imshow(
-            self.x[im_slice - 1, :, :].clip(*px_range),
+            image_slice,
             cmap=self.cmap,
             vmin=px_range[0],
             vmax=px_range[1],
         )
-        if with_mask and self.y is not None:
+        if with_mask and isinstance(self.y, (torch.Tensor, np.ndarray)):
             image_slice = self.y[im_slice - 1, :, :]
             alpha = np.zeros(image_slice.shape)
             alpha[image_slice > self.background_threshold] = self.mask_alpha
@@ -143,14 +168,10 @@ class BasicViewer:
             plot_description = _create_label(self.description)
 
         if isinstance(self.y, str):
-            label = f"{self.y} | {self.prediction}" if self.prediction else self.y
-            if self.prediction:
-                font_color = "green" if self.y == self.prediction else "red"
-                y_label = _create_label(r"\(\color{" + font_color + "} {" + label + "}\)")  # noqa W605
-            else:
-                y_label = _create_label(label)
+            label = f"label: {self.y} | pred: {self.prediction}" if self.prediction is not None else self.y
+            y_label = _create_label(label)
         else:
-            y_label = _create_label(" ")
+            y_label = None
 
         slice_slider = _create_slider(
             slider_min=min(self.slice_range),
@@ -184,10 +205,11 @@ class BasicViewer:
 
         if self.description:
             items.append(plot_description)
-        items.append(y_label)
+        if y_label is not None:
+            items.append(y_label)
         items.append(range_slider)
         items.append(image_output)
-        if self.y is not None:
+        if isinstance(self.y, (torch.Tensor, np.ndarray)):
             slice_slider = widgets.HBox([slice_slider, toggle_mask_button])
         items.append(slice_slider)
 
@@ -197,6 +219,14 @@ class BasicViewer:
         )
 
         return image_box
+
+    def _ensure_correct_dims(self, array: np.ndarray) -> np.ndarray:
+        array = np.squeeze(array)
+        if array.ndim == 2:
+            array = np.expand_dims(array, 0)  # add channel
+        if array.ndim != 3:
+            raise ValueError(f"Input array needs to be 2d or 3d, but is {array.ndim}d")
+        return array
 
     def _generate_views(self):
         image_box = self._create_image_box(self.figsize)
@@ -248,13 +278,12 @@ class DicomExplorer(BasicViewer):
 
     def _image_summary(self, px_range):
         x = self.x.clip(*px_range)
-
         diffs = x - x.mean()
-        var = torch.mean(torch.pow(diffs, 2.0))
-        std = torch.pow(var, 0.5)
+        var = np.mean(np.power(diffs, 2.0))
+        std = np.power(var, 0.5)
         zscores = diffs / std
-        skews = torch.mean(torch.pow(zscores, 3.0))
-        kurt = torch.mean(torch.pow(zscores, 4.0)) - 3.0
+        skews = np.mean(np.power(zscores, 3.0))
+        kurt = np.mean(np.power(zscores, 4.0)) - 3.0
 
         table = (
             "Statistics:\n"
@@ -262,7 +291,7 @@ class DicomExplorer(BasicViewer):
             + f"  Std of px values:  {x.std()} \n"
             + f"  Min px value:      {x.min()} \n"
             + f"  Max px value:      {x.max()} \n"
-            + f"  Median px value:   {x.median()} \n"
+            + f"  Median px value:   {np.median(x)} \n"
             + f"  Skewness:          {skews} \n"
             + f"  Kurtosis:          {kurt} \n\n"
             + "Tensor properties \n"
@@ -335,9 +364,9 @@ class DicomExplorer(BasicViewer):
 class ListViewer:
     """Display multiple images with their masks or labels/predictions.
     Arguments:
-        x (tuple, list): Tensor objects to view
-        y (tuple, list): Tensor objects (in case of segmentation task) or class labels as string.
-        predictions (str): Class predictions
+        x: Tensor objects to view
+        y: Tensor objects (in case of segmentation task) or class labels as string.
+        predictions: Class predictions
         description: description of the whole image
         figsize: size of image, passed as plotting argument
         cmap: colormap for display of `x`
@@ -346,25 +375,32 @@ class ListViewer:
 
     def __init__(
         self,
-        x: Union[List, Tuple],
-        y=None,
-        prediction: Optional[str] = None,
-        description: Optional[str] = None,
+        x: Union[List[NdarrayOrTensor], Tuple],
+        y: Optional[List[Union[NdarrayOrTensor, str]]] = None,
+        prediction: Optional[List[str]] = None,
+        description: Optional[List[str]] = None,
         figsize=(4, 4),
         cmap: str = "bone",
-        max_n=9,
+        max_n: int = 9,
+        mode: Optional[str] = None,
     ):
+        x = ensure_tuple(x, wrap_array=True)
         self.slice_range = (1, len(x))
         x = x[0:max_n]
-        if y:
+        if y is not None:
+            y = ensure_tuple(y, wrap_array=True)  # type: ignore
+            if len(x) != len(y):
+                raise ValueError(f"Number of images ({len(x)}) and labels ({len(y)}) doesn't match")
             y = y[0:max_n]
+
         self.x = x
         self.y = y
         self.prediction = prediction
         self.description = description
         self.figsize = figsize
-        self.cmap = cmap
+        self.cmap = cmap if mode != "RGB" else None
         self.max_n = max_n
+        self.mode = mode
 
     def _generate_views(self):
         n_images = len(self.x)
@@ -372,16 +408,19 @@ class ListViewer:
 
         for i in range(0, n_images):
             image = self.x[i]
-            mask = self.y[i] if isinstance(self.y, list) else None
+            mask = self.y[i] if isinstance(self.y, (tuple, list)) else None
             pred = self.prediction[i] if self.prediction else None
+            desc = self.description[i] if self.description else None
 
             image_list.append(
                 BasicViewer(
                     x=image,
                     y=mask,
                     prediction=pred,
+                    description=desc,
                     figsize=self.figsize,
                     cmap=self.cmap,
+                    mode=self.mode,
                 ).image_box
             )
 
