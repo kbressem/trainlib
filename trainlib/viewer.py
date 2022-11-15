@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Union
 
 import ipywidgets
 import matplotlib.pyplot as plt
@@ -375,8 +375,8 @@ class ListViewer:
 
     def __init__(
         self,
-        x: Union[List[NdarrayOrTensor], Tuple],
-        y: Optional[List[Union[NdarrayOrTensor, str]]] = None,
+        x: Iterable[NdarrayOrTensor],
+        y: Optional[Iterable[Union[NdarrayOrTensor, str]]] = None,
         prediction: Optional[List[str]] = None,
         description: Optional[List[str]] = None,
         figsize=(4, 4),
