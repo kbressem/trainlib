@@ -67,9 +67,7 @@ class TestSegmentationTrainer3d(unittest.TestCase):
 
 class TestSegmentationTrainer2d(unittest.TestCase):
     config = deepcopy(TEST_CONFIG_SEGM)
-    config.data.train_csv = config.data.valid_csv.replace(
-        "3d", "2d"
-    )  # train has images with different number of channels
+    config.data.train_csv = "../data/test_data_valid_2d_segm.csv"
     config.data.valid_csv = config.data.valid_csv.replace("3d", "2d")
     config.data.test_csv = config.data.valid_csv.replace("3d", "2d")
     config.ndim = 2
