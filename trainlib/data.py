@@ -205,10 +205,10 @@ def segmentation_dataloaders(
     for col in label_cols:
         try:
             path = train_df[col][0]
-            path = Path(path)
+            path = Path(data_dir).resolve() / path
         except (KeyError, TypeError):
             continue
-        if isinstance(path, Path) and path.exists():
+        if path.exists():
             path_cols.append(col)
 
     for col in path_cols:

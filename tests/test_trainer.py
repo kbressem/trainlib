@@ -11,9 +11,18 @@ class TestSegmentationTrainer(unittest.TestCase):
     config = TEST_CONFIG
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.config.run_id.split("/")[0])
-        shutil.rmtree(self.config.model_dir)
-        shutil.rmtree(self.config.data.cache_dir)
+        try:
+            shutil.rmtree(self.config.run_id.split("/")[0])
+        except FileNotFoundError:
+            pass
+        try:
+            shutil.rmtree(self.config.model_dir)
+        except FileNotFoundError:
+            pass
+        try:
+            shutil.rmtree(self.config.data.cache_dir)
+        except FileNotFoundError:
+            pass
         super().tearDown()
 
     def test_in_order(self):
