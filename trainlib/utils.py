@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)  # type: ignore
 
 
-def load_config(fn: str = "config.yaml") -> munch.Munch:
+def load_config(fn: Union[Path, str] = "config.yaml") -> munch.Munch:
     """Load config from YAML and return a serialized dictionary object"""
-    with open(fn, "r") as stream:
+    with open(str(fn), "r") as stream:
         config = yaml.safe_load(stream)
     config = munch.munchify(config)
 
