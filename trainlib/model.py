@@ -29,9 +29,11 @@ def get_model(config: munch.Munch) -> nn.Module:
     model_type = list(config.model.keys())[0]
     model_config = config.model[model_type]
     model_config["spatial_dims"] = config.ndim
-    model_config["in_channels"] = len(config.data.image_cols)
-    # name of `in_channels` argument is not identical across all models in monai
-    model_config["n_input_channels"] = len(config.data.image_cols)  # for monai.networks.nets.ResNet
+    if model_type == "ResNet":
+        # name of `in_channels` argument is not identical across all models in monai
+        model_config["n_input_channels"] = len(config.data.image_cols)
+    else:
+        model_config["in_channels"] = len(config.data.image_cols)
 
     if hasattr(monai_models, model_type):
         model_class = getattr(monai_models, model_type)

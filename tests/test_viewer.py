@@ -47,20 +47,25 @@ TEST_CASES = [
 
 
 class TestViewer(unittest.TestCase):
+    
     @parameterized.expand(TEST_CASES)
-    def test_basic_viewer(self, image, label, prediction, description, mode):
-        viewer = BasicViewer(x=image, y=label, prediction=prediction, description=description, mode=mode)
-        viewer.show()
-        plt.close("all")
+    def test_viewers(self, image, label, prediction, description, mode):
+        """Test all viewer in order. Otherwise parallel execution might lead to blocking."""
+        # pyplot windows will open and close during this test in fast succession. 
+        # This might lead to the windows blocking each other and the test to fail. 
+        # With plt.close("all") and plt.pause(0.001) as well as plt.ion() at the beginning of the file
+        # it seems to work. If tests should fail on another machine, plt.show(block=False) might need to be 
+        # added to the viewer classes. 
 
-    @parameterized.expand(TEST_CASES)
-    def test_dicom_explorer(self, image, label, prediction, description, mode):
-        viewer = DicomExplorer(x=image, y=label, prediction=prediction, description=description, mode=mode)
-        viewer.show()
+        basic_viewer = BasicViewer(x=image, y=label, prediction=prediction, description=description, mode=mode)
+        basic_viewer.show()
         plt.close("all")
+        plt.pause(0.001)
 
-    @parameterized.expand(TEST_CASES)
-    def test_list_viewer(self, image, label, prediction, description, mode):
+        dicom_explorer = DicomExplorer(x=image, y=label, prediction=prediction, description=description, mode=mode)
+        dicom_explorer.show()
+        plt.close("all")
+        plt.pause(0.001)
 
         if label is not None:
             label = [label, label]
@@ -69,10 +74,10 @@ class TestViewer(unittest.TestCase):
         if description is not None:
             description = [description, description]
 
-        viewer = ListViewer(x=[image, image], y=label, prediction=prediction, description=description, mode=mode)
-        viewer.show()
+        list_viewer = ListViewer(x=[image, image], y=label, prediction=prediction, description=description, mode=mode)
+        list_viewer.show()
         plt.close("all")
-
+        plt.pause(0.001)
 
 if __name__ == "__main__":
     unittest.main()

@@ -72,12 +72,12 @@ class BasicViewer:
     """Base class for viewing TensorDicom3D objects.
 
     Args:
-        x: main image object to view as rank 3 tensor
-        y: either a segmentation mask as as rank 3 tensor or a label as str.
-        prediction: a class prediction as str
+        x: main image object to view
+        y: either a segmentation mask a label as str/number.
+        prediction: a class prediction as str/number
         description: description of the whole image
         figsize: size of image, passed as plotting argument
-        cmap: colormap for the image
+        cmap: colormap for the image. Ignored if mode = 'RGB'.
         mask_alpha: set transparency of segmentation mask, if one is provided
         background_threshold: Values below this are shown as fully transparent
         mode: if `RGB` a three channel 2D image is plotted as 2d color image. Otherwise ignored
@@ -363,7 +363,7 @@ class ListViewer:
     Arguments:
         x: Tensor objects to view
         y: Tensor objects (in case of segmentation task) or class labels as string.
-        predictions: Class predictions
+        prediction: Class predictions
         description: description of the whole image
         figsize: size of image, passed as plotting argument
         cmap: colormap for display of `x`
