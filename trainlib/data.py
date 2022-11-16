@@ -109,11 +109,11 @@ class DataLoader(MonaiDataLoader):
             label = label.reshape(b * c, *wh_d)
 
         image_list = torch.unbind(image, 0)
-        image_list = torch.unbind(label, 0)
+        label_list = torch.unbind(label, 0)
 
         ListViewer(
             [image_transform(im) for im in image_list],
-            [label_transform(im) for im in image_list],  # type: ignore
+            [label_transform(im) for im in label_list],  # type: ignore
             **kwargs,
         ).show()
 
