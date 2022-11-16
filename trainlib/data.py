@@ -3,6 +3,7 @@
 import logging
 import shutil
 from collections import namedtuple
+from copy import deepcopy
 from functools import partial
 from pathlib import Path
 from typing import Optional
@@ -201,7 +202,7 @@ def segmentation_dataloaders(
         valid_df = valid_df.sample(5)
 
     # Assemble columns that contain a path
-    path_cols = image_cols
+    path_cols = deepcopy(image_cols)
     for col in label_cols:
         try:
             path = train_df[col][0]
