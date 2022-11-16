@@ -263,16 +263,15 @@ class DicomExplorer(BasicViewer):
     def _plot_hist(self, px_range):
         x = self.x.flatten()
         fig, ax = plt.subplots(figsize=self.figsize)
-        n, bins, patches = plt.hist(x, 100, color="grey")
-        lwr = int(px_range[0] * 100 / max(x))
-        upr = int(np.ceil(px_range[1] * 100 / max(x)))
-
-        for i in range(0, lwr):
-            patches[i].set_facecolor("grey" if lwr > 0 else "darkblue")
-        for i in range(lwr, upr):
-            patches[i].set_facecolor("darkblue")
-        for i in range(upr, 100):
-            patches[i].set_facecolor("grey" if upr < 100 else "darkblue")
+        _, bins, patches = plt.hist(x, 100, color="grey")
+        lwr = max(x.min(), px_range[0])
+        upr = min(x.max(), px_range[1])
+                  
+        for i, value in enumerate(bins[0:len(patches)]): 
+            if value < lwr or value > upr: 
+                patches[i].set_facecolor("grey")
+            else: 
+                patches[i].set_facecolor("darkblue")
 
         plt.show()
 
