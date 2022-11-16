@@ -208,7 +208,7 @@ def segmentation_dataloaders(
             path = Path(path)
         except (KeyError, TypeError):
             continue
-        if isinstance(path, Path) and path.exits():
+        if isinstance(path, Path) and path.exists():
             path_cols.append(col)
 
     for col in path_cols:
