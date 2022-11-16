@@ -1,5 +1,6 @@
 import shutil
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 from test_utils import TEST_CONFIG_SEGM
@@ -7,13 +8,13 @@ from test_utils import TEST_CONFIG_SEGM
 from trainlib.trainer import SegmentationTrainer
 
 
-class TestSegmentationTrainer(unittest.TestCase):
-    config = TEST_CONFIG_SEGM
+class TestSegmentationTrainer3d(unittest.TestCase):
+    config = deepcopy(TEST_CONFIG_SEGM)
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.config.run_id.split("/")[0])
-        shutil.rmtree(self.config.model_dir)
-        shutil.rmtree(self.config.data.cache_dir)
+        shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
+        shutil.rmtree(self.config.model_dir, ignore_errors=True)
+        shutil.rmtree(self.config.data.cache_dir, ignore_errors=True)
         super().tearDown()
 
     def test_in_order(self):
@@ -62,6 +63,26 @@ class TestSegmentationTrainer(unittest.TestCase):
         assert path.exists(), f"File does not exist: {fn}"
         if is_file and not path.is_file():
             raise AssertionError(f"{fn} exists but does not point towards a file.")
+
+
+class TestSegmentationTrainer2d(unittest.TestCase):
+    config = deepcopy(TEST_CONFIG_SEGM)
+    config.data.train_csv = config.data.valid_csv.replace(
+        "3d", "2d"
+    )  # train has images with different number of channels
+    config.data.valid_csv = config.data.valid_csv.replace("3d", "2d")
+    config.data.test_csv = config.data.valid_csv.replace("3d", "2d")
+    config.ndim = 2
+    config.data.dataset_type = "iterative"
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
+        shutil.rmtree(self.config.model_dir, ignore_errors=True)
+        super().tearDown()
+
+    def test_one_epoch(self):
+        trainer = SegmentationTrainer(config=self.config)
+        trainer.run()
 
 
 if __name__ == "__main__":
