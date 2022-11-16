@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import ipywidgets
 import matplotlib.pyplot as plt
@@ -9,6 +9,8 @@ from ipywidgets import widgets
 from monai.config.type_definitions import NdarrayOrTensor
 from monai.transforms.utils import ensure_tuple
 from monai.utils import convert_to_numpy
+
+from trainlib.utils import ShapeMissmatchError
 
 
 def _create_label(text: str) -> ipywidgets.widgets.Label:
@@ -24,8 +26,8 @@ def _create_label(text: str) -> ipywidgets.widgets.Label:
 def _create_slider(
     slider_min: int,
     slider_max: int,
-    value: int,
-    step: int = 1,
+    value: Union[Sequence[int], int],
+    step: Union[int, float] = 1,
     description: str = "",
     continuous_update: bool = True,
     readout: bool = False,
@@ -66,12 +68,6 @@ def _create_togglebutton(description: str, value: int, **kwargs) -> ipywidgets.w
     return button
 
 
-class ShapeMissmatchError(Exception):
-    def __init__(self, a, b):
-        message = f"Shapes of x {a.shape} and y {b.shape} do not match."
-        super().__init__(message)
-
-
 class BasicViewer:
     """Base class for viewing TensorDicom3D objects.
 
@@ -95,18 +91,16 @@ class BasicViewer:
         y: Optional[Union[NdarrayOrTensor, str]] = None,
         prediction: Optional[str] = None,
         description: Optional[str] = None,
-        figsize=(3, 3),
-        cmap: str = "bone",
-        mask_alpha=0.25,
-        background_threshold=0.05,
+        figsize: Tuple[int, int] = (3, 3),
+        cmap: Optional[str] = "bone",
+        mask_alpha: float = 0.25,
+        background_threshold: float = 0.05,
         mode: Optional[str] = None,
     ):
-        x = np.squeeze(convert_to_numpy(x))
-        x = self._ensure_correct_dims(x)  # type: ignore
+        x = self._ensure_correct_dims(convert_to_numpy(x))
 
         if isinstance(y, (torch.Tensor, np.ndarray)):
-            y = np.squeeze(convert_to_numpy(y))
-            y = self._ensure_correct_dims(y)  # type: ignore
+            y = self._ensure_correct_dims(convert_to_numpy(y))
 
             if (x.shape[-2:] != y.shape[-2:]) or (mode != "RGB" and x.shape != y.shape):
                 raise ShapeMissmatchError(x, y)
@@ -130,8 +124,8 @@ class BasicViewer:
         self.background_threshold = background_threshold
         self.mode = mode
 
-    def _plot_slice(self, im_slice, with_mask, px_range):
-        "Plot slice of image"
+    def _plot_slice(self, im_slice: int, with_mask: bool, px_range: Tuple[int, int]) -> None:
+        """Plot slice of image"""
         fig, ax = plt.subplots(1, 1, figsize=self.figsize)
 
         if self.mode == "RGB" and self.x.shape[0] == 4:
@@ -160,7 +154,7 @@ class BasicViewer:
         ax.set_yticks([])
         plt.show()
 
-    def _create_image_box(self, figsize):
+    def _create_image_box(self) -> widgets.VBox:
         """Create widget items, order them in item_box and generate view box"""
         items = []
 
@@ -228,15 +222,16 @@ class BasicViewer:
             raise ValueError(f"Input array needs to be 2d or 3d, but is {array.ndim}d")
         return array
 
-    def _generate_views(self):
-        image_box = self._create_image_box(self.figsize)
+    def _generate_views(self) -> None:
+        image_box = self._create_image_box()
         self.box = widgets.HBox(children=[image_box])
 
     @property
-    def image_box(self):
-        return self._create_image_box(self.figsize)
+    def image_box(self) -> widgets.VBox:
+        return self._create_image_box()
 
-    def show(self):
+    def show(self) -> None:
+        """Shows plot using ipywidgets"""
         self._generate_views()
         plt.style.use("default")
         display(self.box)
@@ -244,7 +239,7 @@ class BasicViewer:
 
 class DicomExplorer(BasicViewer):
     """DICOM viewer for basic image analysis inside iPython notebooks.
-    Can display a single 3D volume together with a segmentation mask, a histogram
+    Can display a single 2D image or 3D volume together with a segmentation mask, a histogram
     of voxel/pixel values and some summary statistics.
     Allows simple windowing by clipping the pixel/voxel values to a region, which
     can be manually specified.
@@ -260,7 +255,8 @@ class DicomExplorer(BasicViewer):
         min_width="250px",
     )
 
-    def _plot_hist(self, px_range):
+    def _plot_hist(self, px_range: Tuple[int, int]) -> None:
+        """Create a simple histogram of pixel/voxel values"""
         x = self.x.flatten()
         fig, ax = plt.subplots(figsize=self.figsize)
         _, bins, patches = plt.hist(x, 100, color="grey")
@@ -275,7 +271,8 @@ class DicomExplorer(BasicViewer):
 
         plt.show()
 
-    def _image_summary(self, px_range):
+    def _image_summary(self, px_range: Tuple[int, int]) -> None:
+        """Print basic summary statistics about pixel/voxel values"""
         x = self.x.clip(*px_range)
         diffs = x - x.mean()
         var = np.mean(np.power(diffs, 2.0))
@@ -299,7 +296,8 @@ class DicomExplorer(BasicViewer):
         )
         print(table)
 
-    def _generate_views(self):
+    def _generate_views(self) -> None:
+        """Prepares and arranges all ipywidgets for presentation."""
 
         slice_slider = _create_slider(
             slider_min=min(self.slice_range),
@@ -378,8 +376,8 @@ class ListViewer:
         y: Optional[List[Union[NdarrayOrTensor, str]]] = None,
         prediction: Optional[List[str]] = None,
         description: Optional[List[str]] = None,
-        figsize=(4, 4),
-        cmap: str = "bone",
+        figsize: Tuple[int, int] = (4, 4),
+        cmap: Optional[str] = "bone",
         max_n: int = 9,
         mode: Optional[str] = None,
     ):
@@ -401,7 +399,8 @@ class ListViewer:
         self.max_n = max_n
         self.mode = mode
 
-    def _generate_views(self):
+    def _generate_views(self) -> None:
+        """Arranges and prepares all ipywidgets for presentation"""
         n_images = len(self.x)
         image_grid, image_list = [], []
 
@@ -429,7 +428,8 @@ class ListViewer:
 
         self.box = widgets.VBox(children=image_grid)
 
-    def show(self):
+    def show(self) -> None:
+        """Display plots using ipywidgets"""
         self._generate_views()
         plt.style.use("default")
         display(self.box)
