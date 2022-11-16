@@ -5,7 +5,7 @@ import shutil
 from collections import namedtuple
 from functools import partial
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import munch
 import pandas as pd
@@ -39,6 +39,14 @@ def import_dataset(config: munch.Munch):
     return Dataset
 
 
+def _default_image_transform_3d(image: torch.Tensor) -> torch.Tensor:
+    return image.squeeze().transpose(0, 2).flip(-2)
+
+
+def _default_image_transform_2d(image: torch.Tensor) -> torch.Tensor:
+    return image.squeeze().transpose(-2, -1)
+
+
 class DataLoader(MonaiDataLoader):
     """Overwrite monai DataLoader for enhanced viewing and debugging capabilities"""
 
@@ -48,8 +56,9 @@ class DataLoader(MonaiDataLoader):
         self,
         image_key: str = "image",
         label_key: str = "label",
-        image_transform=lambda x: x.squeeze().transpose(0, 2).flip(-2),
-        label_transform=lambda x: x.squeeze().transpose(0, 2).flip(-2),
+        image_transform: Optional[Callable] = None,
+        label_transform: Optional[Callable] = None,
+        mode: Optional[str] = None,
         **kwargs,
     ):
         """Args:
@@ -60,27 +69,43 @@ class DataLoader(MonaiDataLoader):
         label_transform: transform labels before passed to the viewer, to ensure
             segmentations masks have same shape and orientations as images. Should be
             identity function of labels are str.
+        mode: If `mode = 'RGB'` channel-dim will be treated as colors. Otherwise each channels is
+            displayed individually.
         """
         from trainlib.viewer import ListViewer
 
         batch = first(self)
         image = batch[image_key]
         label = batch[label_key]
-        b, c, w, h, d = image.shape
-        if label.shape[1] == 1:
+
+        b, c, *wh_d = image.shape
+        ndim = len(wh_d)
+
+        if image_transform is None:
+            image_transform = globals()[f"_default_image_transform_{ndim}d"]
+
+        if label_transform is None and isinstance(label, torch.Tensor):
+            label_transform = globals()[f"_default_image_transform_{ndim}d"]
+
+        elif label.shape[1] == 1 and mode != "RGB":
             label = torch.stack([label] * c, 1)
-        elif label.shape[1] == c:
+        elif label.shape[1] == c or (label.shape[1] == 1 and c == 3 and mode == "RGB"):
             pass
         else:
             raise NotImplementedError(
                 f"`show_batch` not implemented for label with {label.shape[0]}" f" channels if image has {c} channels"
             )
-        image = torch.unbind(image.reshape(b * c, w, h, d), 0)
-        label = torch.unbind(label.reshape(b * c, w, h, d), 0)
+
+        if mode != "RGB":
+            image = image.reshape(b * c, *wh_d)
+            label = label.reshape(b * c, *wh_d)
+
+        image = torch.unbind(image, 0)
+        label = torch.unbind(label, 0)
 
         ListViewer(
             [image_transform(im) for im in image],
-            [label_transform(im) for im in label],
+            [label_transform(im) for im in label],  # type: ignore
             **kwargs,
         ).show()
 
