@@ -79,7 +79,7 @@ class DataLoader(MonaiDataLoader):
         transforms = self.dataset.transform  # type: ignore
 
         self.start = self.start + batch_size if (self.start + batch_size) < n_items else 0
-        data = self.dataset.data[self.start : (self.start + batch_size)]  # type: ignore # noqa E203 
+        data = self.dataset.data[self.start : (self.start + batch_size)]  # type: ignore # noqa E203
 
         batch = [transforms(item) for item in data]
         image = torch.stack([item[image_key] for item in batch], 0)
