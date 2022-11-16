@@ -1,8 +1,8 @@
 data:
   data_dir: ../data/
-  train_csv: ../data/test_data_train_3d_segm.csv
-  valid_csv: ../data/test_data_valid_3d_segm.csv
-  test_csv: ../data/test_data_valid_3d_segm.csv
+  train_csv: ../data/test_data_train_3d_clf.csv
+  valid_csv: ../data/test_data_valid_3d_clf.csv
+  test_csv: ../data/test_data_valid_3d_clf.csv
   image_cols: [image]
   label_cols: [label]
   train: True
@@ -15,22 +15,18 @@ debug: false
 device: cpu
 log_dir: logs
 loss:
-  DiceLoss:
-    include_background: true
-    softmax: true
-    to_onehot_y: true
+  CrossEntropyLoss: {}
 lr_scheduler:
   OneCycleLR:
     max_lr: 0.0001
 model:
-  UNet:
-    act: PRELU
-    channels: [16, 32]
-    dropout: 0.1
-    norm: BATCH
-    num_res_units: 1
-    out_channels: 2 # bg, label
-    strides: [2]
+  ResNet:
+    block: basic
+    layers: [1, 1, 1, 1]
+    block_inplanes: [1, 1, 1, 1]
+    n_input_channels: 1
+    spatial_dims: 3
+    num_classes: 2
 model_dir: models
 ndim: 3
 optimizer:
