@@ -101,7 +101,7 @@ class DataLoader(MonaiDataLoader):
             pass
         else:
             raise NotImplementedError(
-                f"`show_batch` not implemented for label with {label.shape[0]}" f" channels if image has {c} channels"
+                f"`show_batch` not implemented for label with {label.shape[0]} channels if image has {c} channels"
             )
 
         if mode != "RGB":
