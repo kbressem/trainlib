@@ -12,7 +12,6 @@ import pandas as pd
 import torch
 from monai.data import DataLoader as MonaiDataLoader
 from monai.transforms import Compose
-from monai.utils import first
 from tqdm import tqdm
 
 from trainlib import transforms
@@ -52,6 +51,7 @@ class DataLoader(MonaiDataLoader):
     """Overwrite monai DataLoader for enhanced viewing and debugging capabilities"""
 
     logger = logger
+    start: int = 0  # first item for `show_batch`
 
     def show_batch(
         self,
@@ -73,17 +73,13 @@ class DataLoader(MonaiDataLoader):
         mode: If `mode = 'RGB'` channel-dim will be treated as colors. Otherwise each channels is
             displayed individually.
         """
+        # mypy does not recognize that data/transforms are in dataset
+        n_items: int = self.dataset.data.__len__()  # type: ignore
+        batch_size: int = self.batch_size  # type: ignore
+        transforms = self.dataset.transform  # type: ignore
 
-        n_items = self.dataset.data.__len__()
-        batch_size = self.batch_size
-
-        if not hasattr(self, "start"): 
-            self.start = 0
-        else: 
-            self.start = self.start + batch_size if (self.start + batch_size) < n_items else 0
-
-        data = self.dataset.data[self.start:(self.start + batch_size)]
-        transforms = self.dataset.transform
+        self.start = self.start + batch_size if (self.start + batch_size) < n_items else 0
+        data = self.dataset.data[self.start : (self.start + batch_size)]  # type: ignore # noqa E203 
 
         batch = [transforms(item) for item in data]
         image = torch.stack([item[image_key] for item in batch], 0)
@@ -111,12 +107,12 @@ class DataLoader(MonaiDataLoader):
             image = image.reshape(b * c, *wh_d)
             label = label.reshape(b * c, *wh_d)
 
-        image = torch.unbind(image, 0)
-        label = torch.unbind(label, 0)
+        image_list = torch.unbind(image, 0)
+        image_list = torch.unbind(label, 0)
 
         ListViewer(
-            [image_transform(im) for im in image],
-            [label_transform(im) for im in label],  # type: ignore
+            [image_transform(im) for im in image_list],
+            [label_transform(im) for im in image_list],
             **kwargs,
         ).show()
 
