@@ -1,4 +1,5 @@
 import inspect
+from pathlib import Path
 
 import ignite
 import torch
@@ -11,7 +12,7 @@ def mock_one_epoch(engine, batch):
     return 1
 
 
-TEST_CONFIG = load_config("test_config.yaml")
+TEST_CONFIG = load_config(Path(__file__).parent / "test_config.yaml")
 TEST_ENGINE = ignite.engine.Engine(mock_one_epoch)
 TEST_IMAGE = torch.randn(1, 1, 3, 3, 3)
 TEST_LABEL = torch.stack(

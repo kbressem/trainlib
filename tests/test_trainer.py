@@ -11,9 +11,9 @@ class TestSegmentationTrainer(unittest.TestCase):
     config = TEST_CONFIG
 
     def tearDown(self) -> None:
-        shutil.rmtree(self.config.run_id.split("/")[0])
-        shutil.rmtree(self.config.model_dir)
-        shutil.rmtree(self.config.data.cache_dir)
+        shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
+        shutil.rmtree(self.config.model_dir, ignore_errors=True)
+        shutil.rmtree(self.config.data.cache_dir, ignore_errors=True)
         super().tearDown()
 
     def test_in_order(self):

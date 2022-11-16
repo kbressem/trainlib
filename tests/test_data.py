@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +15,7 @@ class TestDatasetInit(unittest.TestCase):
 
     def test_init_iterative_dataset(self):
         """Test that dataset is of correct instance"""
+        shutil.rmtree(self.config.data.cache_dir, ignore_errors=True)  # remove if exist from other runs
         self.config.data.dataset_type = "iterative"
         dataset = import_dataset(self.config)(data=[], transform=[])
         self.assertIsInstance(dataset, monai.data.Dataset)
