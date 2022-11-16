@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 from trainlib import transforms
 from trainlib.utils import num_workers
+from trainlib.viewer import ListViewer
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +73,21 @@ class DataLoader(MonaiDataLoader):
         mode: If `mode = 'RGB'` channel-dim will be treated as colors. Otherwise each channels is
             displayed individually.
         """
-        from trainlib.viewer import ListViewer
 
-        batch = first(self)
-        image = batch[image_key]
-        label = batch[label_key]
+        n_items = self.dataset.data.__len__()
+        batch_size = self.batch_size
+
+        if not hasattr(self, "start"): 
+            self.start = 0
+        else: 
+            self.start = self.start + batch_size if (self.start + batch_size) < n_items else 0
+
+        data = self.dataset.data[self.start:(self.start + batch_size)]
+        transforms = self.dataset.transform
+
+        batch = [transforms(item) for item in data]
+        image = torch.stack([item[image_key] for item in batch], 0)
+        label = torch.stack([item[label_key] for item in batch], 0)
 
         b, c, *wh_d = image.shape
         ndim = len(wh_d)
