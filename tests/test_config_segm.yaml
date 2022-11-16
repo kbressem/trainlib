@@ -1,8 +1,8 @@
 data:
   data_dir: ../data/
-  train_csv: ../data/test_data_train.csv
-  valid_csv: ../data/test_data_valid.csv
-  test_csv: ../data/test_data_valid.csv
+  train_csv: ../data/test_data_train_3d.csv
+  valid_csv: ../data/test_data_valid_3d.csv
+  test_csv: ../data/test_data_valid_3d.csv
   image_cols: [image]
   label_cols: [label]
   train: True

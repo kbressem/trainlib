@@ -2,13 +2,13 @@ import shutil
 import unittest
 from pathlib import Path
 
-from test_utils import TEST_CONFIG
+from test_utils import TEST_CONFIG_SEGM
 
 from trainlib.trainer import SegmentationTrainer
 
 
 class TestSegmentationTrainer(unittest.TestCase):
-    config = TEST_CONFIG
+    config = TEST_CONFIG_SEGM
 
     def tearDown(self) -> None:
         shutil.rmtree(self.config.run_id.split("/")[0])
