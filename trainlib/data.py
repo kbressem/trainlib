@@ -112,7 +112,7 @@ class DataLoader(MonaiDataLoader):
 
         ListViewer(
             [image_transform(im) for im in image_list],
-            [label_transform(im) for im in image_list],
+            [label_transform(im) for im in image_list],  # type: ignore
             **kwargs,
         ).show()
 
