@@ -47,15 +47,14 @@ TEST_CASES = [
 
 
 class TestViewer(unittest.TestCase):
-    
     @parameterized.expand(TEST_CASES)
     def test_viewers(self, image, label, prediction, description, mode):
         """Test all viewer in order. Otherwise parallel execution might lead to blocking."""
-        # pyplot windows will open and close during this test in fast succession. 
-        # This might lead to the windows blocking each other and the test to fail. 
+        # pyplot windows will open and close during this test in fast succession.
+        # This might lead to the windows blocking each other and the test to fail.
         # With plt.close("all") and plt.pause(0.001) as well as plt.ion() at the beginning of the file
-        # it seems to work. If tests should fail on another machine, plt.show(block=False) might need to be 
-        # added to the viewer classes. 
+        # it seems to work. If tests should fail on another machine, plt.show(block=False) might need to be
+        # added to the viewer classes.
 
         basic_viewer = BasicViewer(x=image, y=label, prediction=prediction, description=description, mode=mode)
         basic_viewer.show()
@@ -78,6 +77,7 @@ class TestViewer(unittest.TestCase):
         list_viewer.show()
         plt.close("all")
         plt.pause(0.001)
+
 
 if __name__ == "__main__":
     unittest.main()
