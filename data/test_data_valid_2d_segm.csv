@@ -1,0 +1,3 @@
+image,label
+images/54686_radiopeadia_pneumonia_2d.nrrd,labels/54686_radiopeadia_pneumonia_2d.nrrd
+images/86926_radiopeadia_pneumothorax.nrrd,labels/86926_radiopeadia_pneumothorax.nii.gz

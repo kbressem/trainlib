@@ -100,3 +100,9 @@ def import_patched(path: Union[str, Path], name: str) -> Callable:
     function_or_class = getattr(patch, name)
     logger.info(f"importing patch `{name}` from `{path}`.")
     return function_or_class
+
+
+class ShapeMissmatchError(Exception):
+    def __init__(self, a, b):
+        message = f"Shapes of x {a.shape} and y {b.shape} do not match."
+        super().__init__(message)

@@ -1,14 +1,14 @@
 import unittest
 
 import torch
-from test_utils import TEST_CONFIG
+from test_utils import TEST_CONFIG_SEGM
 
 from trainlib.model import get_model
 from trainlib.optimizer import get_optimizer
 
 
 class TestOptimizer(unittest.TestCase):
-    config = TEST_CONFIG
+    config = TEST_CONFIG_SEGM
 
     def test_init(self):
         model = get_model(self.config)

@@ -1,0 +1,55 @@
+data:
+  data_dir: ../data/
+  train_csv: ../data/test_data_train_3d_clf.csv
+  valid_csv: ../data/test_data_valid_3d_clf.csv
+  test_csv: ../data/test_data_valid_3d_clf.csv
+  image_cols: [image]
+  label_cols: [label]
+  train: True
+  valid: True
+  test: False
+  dataset_type: persistent
+  cache_dir: .monai-cache
+  batch_size: 1
+debug: false
+device: cpu
+log_dir: logs
+loss:
+  CrossEntropyLoss: {}
+lr_scheduler:
+  OneCycleLR:
+    max_lr: 0.0001
+model:
+  ResNet:
+    block: basic
+    layers: [1, 1, 1, 1]
+    block_inplanes: [1, 1, 1, 1]
+    n_input_channels: 1
+    spatial_dims: 3
+    num_classes: 2
+model_dir: models
+ndim: 3
+optimizer:
+  Adam:
+    lr: 0.0001
+    weight_decay: 0.001
+out_dir: output
+overwrite: true
+run_id: runs/name
+seed: 42
+training:
+  early_stopping_patience: 1
+  max_epochs: 1
+transforms:
+  base:
+    LoadImaged:
+      keys: image
+      allow_missing_keys: true
+    EnsureChannelFirstd:
+      keys: image
+      allow_missing_keys: true
+    Spacingd:
+      keyss: image
+      pixdim: [2, 2, 2]
+      mode: bilinear
+  prob: 0.1

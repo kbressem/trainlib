@@ -19,20 +19,20 @@ class TestNumWorkers(unittest.TestCase):
 class TestLoadConfig(unittest.TestCase):
     def test_load(self):
         """Test that config is a dict and munch.Munch object"""
-        config = load_config("test_config.yaml")
+        config = load_config("test_config_segm.yaml")
         self.assertIsInstance(config, dict)
         self.assertIsInstance(config, munch.Munch)
         self.assertIsInstance(config.data.data_dir, Path)
 
     def test_listification(self):
         """Test that image_cols and label_cols are converted to lists"""
-        config = load_config("test_config.yaml")
+        config = load_config("test_config_segm.yaml")
         self.assertIsInstance(config.data.image_cols, list)
         self.assertIsInstance(config.data.label_cols, list)
 
     def test_mode(self):
         """Test that length of mode paramter is same as numer of image + label cols"""
-        config = load_config("test_config.yaml")
+        config = load_config("test_config_segm.yaml")
         self.assertEqual(
             len(config.transforms.mode),
             len(config.data.image_cols + config.data.label_cols),
@@ -40,7 +40,7 @@ class TestLoadConfig(unittest.TestCase):
 
     def test_paths(self):
         """Test that paths for output are specified correctly"""
-        config = load_config("test_config.yaml")
+        config = load_config("test_config_segm.yaml")
         self.assertIn(str(config.run_id), str(config.out_dir))
         self.assertIn(str(config.run_id), str(config.log_dir))
 

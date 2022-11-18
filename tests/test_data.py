@@ -5,13 +5,13 @@ from pathlib import Path
 
 import monai
 from monai.data import DataLoader
-from test_utils import TEST_CONFIG
+from test_utils import TEST_CONFIG_SEGM
 
 from trainlib.data import import_dataset, segmentation_dataloaders
 
 
-class TestDatasetInit(unittest.TestCase):
-    config = TEST_CONFIG
+class TestSegmDatasetInit(unittest.TestCase):
+    config = TEST_CONFIG_SEGM
 
     def test_init_iterative_dataset(self):
         """Test that dataset is of correct instance"""
@@ -32,7 +32,7 @@ class TestDatasetInit(unittest.TestCase):
 
 
 class TestSegmentationDataLoaders(unittest.TestCase):
-    config = TEST_CONFIG
+    config = TEST_CONFIG_SEGM
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

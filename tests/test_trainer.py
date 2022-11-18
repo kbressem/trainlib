@@ -1,14 +1,15 @@
 import shutil
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
-from test_utils import TEST_CONFIG
+from test_utils import TEST_CONFIG_SEGM
 
 from trainlib.trainer import SegmentationTrainer
 
 
-class TestSegmentationTrainer(unittest.TestCase):
-    config = TEST_CONFIG
+class TestSegmentationTrainer3d(unittest.TestCase):
+    config = deepcopy(TEST_CONFIG_SEGM)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
@@ -62,6 +63,23 @@ class TestSegmentationTrainer(unittest.TestCase):
         assert path.exists(), f"File does not exist: {fn}"
         if is_file and not path.is_file():
             raise AssertionError(f"{fn} exists but does not point towards a file.")
+
+
+class TestSegmentationTrainer2d(unittest.TestCase):
+    config = deepcopy(TEST_CONFIG_SEGM)
+    config.data.train_csv = "../data/test_data_valid_2d_segm.csv"
+    config.data.valid_csv = "../data/test_data_valid_2d_segm.csv"
+    config.data.test_csv = "../data/test_data_valid_2d_segm.csv"
+    config.ndim = 2
+    config.data.dataset_type = "iterative"
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
+        shutil.rmtree(self.config.model_dir, ignore_errors=True)
+
+    def test_one_epoch(self):
+        trainer = SegmentationTrainer(config=self.config)
+        trainer.run()
 
 
 if __name__ == "__main__":

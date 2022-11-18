@@ -3,13 +3,13 @@ import unittest
 
 import yaml
 from ignite.engine import Events
-from test_utils import TEST_CONFIG, TEST_ENGINE, TEST_IMAGE, TEST_LABEL
+from test_utils import TEST_CONFIG_SEGM, TEST_ENGINE, TEST_IMAGE, TEST_LABEL
 
 from trainlib.handlers import DebugHandler, PushnotificationHandler
 
 
 class TestPushNotificationHandler(unittest.TestCase):
-    config = TEST_CONFIG
+    config = TEST_CONFIG_SEGM
     engine = TEST_ENGINE
 
     def test_init(self):
@@ -46,7 +46,7 @@ class TestPushNotificationHandler(unittest.TestCase):
 
 
 class TestDebugHandler(unittest.TestCase):
-    config = TEST_CONFIG
+    config = TEST_CONFIG_SEGM
     engine = TEST_ENGINE
     image = TEST_IMAGE
     label = TEST_LABEL

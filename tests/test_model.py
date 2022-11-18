@@ -1,13 +1,13 @@
 import unittest
 
 import torch
-from test_utils import TEST_CONFIG, TEST_IMAGE
+from test_utils import TEST_CONFIG_SEGM, TEST_IMAGE
 
 from trainlib.model import get_model
 
 
 class TestModel(unittest.TestCase):
-    config = TEST_CONFIG
+    config = TEST_CONFIG_SEGM
     image = TEST_IMAGE
 
     def test_init(self):

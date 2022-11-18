@@ -2,7 +2,7 @@ all:
 	@echo "Hi :). Nothing is implemented in here yet."
 
 install:
-	pip install flake8 black[jupyter] isort parameterized opencv-python
+	pip install flake8 black[jupyter] isort parameterized opencv-python mypy bump2version
 	pip install -e .
 
 pretty:
@@ -23,10 +23,8 @@ uninstall:
 	pip uninstall pip-autoremove -y
 
 clean:
-	python3 -Bc "import pathlib; [p.unlink() for p in pathlib.Path('.').rglob('*.py[co]')]"
-	python3 -Bc "import pathlib; [p.rmdir() for p in pathlib.Path('.').rglob('__pycache__')]"
-	python3 -Bc "import shutil, pathlib; [shutil.rmtree(p) for p in pathlib.Path('.').rglob('.ipynb_checkpoints')]"
-
+	python3 -Bc "import shutil, pathlib; [p.unlink() for p in pathlib.Path('.').rglob('*.py[co]')]; [shutil.rmtree(p) for fn in ['__pycache__', '.ipynb*', 'runs', 'models', '.monai-cache'] for p in pathlib.Path('.').rglob(fn)]"
+    
 major_release: 
 	bump2version major trainlib/__init__.py
 

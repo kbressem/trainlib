@@ -6,18 +6,18 @@ from collections import namedtuple
 from copy import deepcopy
 from functools import partial
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import munch
 import pandas as pd
 import torch
 from monai.data import DataLoader as MonaiDataLoader
 from monai.transforms import Compose
-from monai.utils import first
 from tqdm import tqdm
 
 from trainlib import transforms
 from trainlib.utils import num_workers
+from trainlib.viewer import ListViewer
 
 logger = logging.getLogger(__name__)
 
@@ -40,48 +40,80 @@ def import_dataset(config: munch.Munch):
     return Dataset
 
 
+def _default_image_transform_3d(image: torch.Tensor) -> torch.Tensor:
+    return image.squeeze().transpose(0, 2).flip(-2)
+
+
+def _default_image_transform_2d(image: torch.Tensor) -> torch.Tensor:
+    return image.squeeze().transpose(-2, -1)
+
+
 class DataLoader(MonaiDataLoader):
     """Overwrite monai DataLoader for enhanced viewing and debugging capabilities"""
 
     logger = logger
+    start: int = 0  # first item for `show_batch`
 
     def show_batch(
         self,
         image_key: str = "image",
         label_key: str = "label",
-        image_transform=lambda x: x.squeeze().transpose(0, 2).flip(-2),
-        label_transform=lambda x: x.squeeze().transpose(0, 2).flip(-2),
+        image_transform: Optional[Callable] = None,
+        label_transform: Optional[Callable] = None,
+        mode: Optional[str] = None,
         **kwargs,
     ):
         """Args:
         image_key: dict key name for image to view
         label_key: dict kex name for corresponding label. Can be a tensor or str
-        image_transform: transform input before it is passed to the viewer to ensure
-            ndim of the image is equal to 3 and image is oriented correctly
-        label_transform: transform labels before passed to the viewer, to ensure
-            segmentations masks have same shape and orientations as images. Should be
-            identity function of labels are str.
+        image_transform: transform input before it is passed to the viewer.
+            If None a default transform is applied to ensure dimensionality and orientation of the image are correct.
+        label_transform: transform labels before passed to the viewer.
+            If None a default transform is applied tp ensure dimensionality and orientation are correct.
+        mode: If `mode = 'RGB'` channel-dim will be treated as colors. Otherwise each channels is
+            displayed individually.
         """
-        from trainlib.viewer import ListViewer
+        # mypy does not recognize that data/transforms are in dataset
+        n_items: int = self.dataset.data.__len__()  # type: ignore
+        batch_size: int = self.batch_size  # type: ignore
+        transforms = self.dataset.transform  # type: ignore
 
-        batch = first(self)
-        image = batch[image_key]
-        label = batch[label_key]
-        b, c, w, h, d = image.shape
-        if label.shape[1] == 1:
+        self.start = self.start + batch_size if (self.start + batch_size) < n_items else 0
+        data = self.dataset.data[self.start : (self.start + batch_size)]  # type: ignore # noqa E203
+
+        batch = [transforms(item) for item in data]
+        image = torch.stack([item[image_key] for item in batch], 0)
+        label = torch.stack([item[label_key] for item in batch], 0)
+
+        b, c, *wh_d = image.shape
+        ndim = len(wh_d)
+
+        if image_transform is None:
+            image_transform = globals()[f"_default_image_transform_{ndim}d"]
+
+        if label_transform is None and isinstance(label, torch.Tensor):
+            label_transform = globals()[f"_default_image_transform_{ndim}d"]
+
+        elif label.shape[1] == 1 and mode != "RGB":
             label = torch.stack([label] * c, 1)
-        elif label.shape[1] == c:
+        elif label.shape[1] == c or (label.shape[1] == 1 and c == 3 and mode == "RGB"):
             pass
         else:
             raise NotImplementedError(
-                f"`show_batch` not implemented for label with {label.shape[0]}" f" channels if image has {c} channels"
+                f"`show_batch` not implemented for label with {label.shape[0]} channels if image has {c} channels"
             )
-        image = torch.unbind(image.reshape(b * c, w, h, d), 0)
-        label = torch.unbind(label.reshape(b * c, w, h, d), 0)
+
+        if mode != "RGB":
+            image = image.reshape(b * c, *wh_d)
+            label = label.reshape(b * c, *wh_d)
+
+        image_list = torch.unbind(image, 0)
+        label_list = torch.unbind(label, 0)
 
         ListViewer(
-            [image_transform(im) for im in image],
-            [label_transform(im) for im in label],
+            [image_transform(im) for im in image_list],
+            [label_transform(im) for im in label_list],  # type: ignore
+            mode=mode,
             **kwargs,
         ).show()
 
