@@ -66,11 +66,10 @@ class DataLoader(MonaiDataLoader):
         """Args:
         image_key: dict key name for image to view
         label_key: dict kex name for corresponding label. Can be a tensor or str
-        image_transform: transform input before it is passed to the viewer to ensure
-            ndim of the image is equal to 3 and image is oriented correctly
-        label_transform: transform labels before passed to the viewer, to ensure
-            segmentations masks have same shape and orientations as images. Should be
-            identity function of labels are str.
+        image_transform: transform input before it is passed to the viewer. 
+            If None a default transform is applied to ensure dimensionality and orientation of the image are correct. 
+        label_transform: transform labels before passed to the viewer. 
+            If None a default transform is applied tp ensure dimensionality and orientation are correct. 
         mode: If `mode = 'RGB'` channel-dim will be treated as colors. Otherwise each channels is
             displayed individually.
         """

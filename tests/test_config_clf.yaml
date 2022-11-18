@@ -43,11 +43,13 @@ training:
 transforms:
   base:
     LoadImaged:
+      keys: image
       allow_missing_keys: true
     EnsureChannelFirstd:
+      keys: image
       allow_missing_keys: true
     Spacingd:
+      keyss: image
       pixdim: [2, 2, 2]
-      mode: [bilinear, nearest]
-  orientation: RAS
+      mode: bilinear
   prob: 0.1

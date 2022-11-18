@@ -68,8 +68,8 @@ class TestSegmentationTrainer3d(unittest.TestCase):
 class TestSegmentationTrainer2d(unittest.TestCase):
     config = deepcopy(TEST_CONFIG_SEGM)
     config.data.train_csv = "../data/test_data_valid_2d_segm.csv"
-    config.data.valid_csv = config.data.valid_csv.replace("3d", "2d")
-    config.data.test_csv = config.data.valid_csv.replace("3d", "2d")
+    config.data.valid_csv = "../data/test_data_valid_2d_segm.csv"
+    config.data.test_csv = "../data/test_data_valid_2d_segm.csv"
     config.ndim = 2
     config.data.dataset_type = "iterative"
 

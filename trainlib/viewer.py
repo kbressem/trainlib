@@ -407,15 +407,15 @@ class ListViewer:
         for i in range(0, n_images):
             image = self.x[i]
             mask = self.y[i] if isinstance(self.y, (tuple, list)) else None
-            pred = self.prediction[i] if self.prediction else None
-            desc = self.description[i] if self.description else None
+            prediction = self.prediction[i] if self.prediction else None
+            description = self.description[i] if self.description else None
 
             image_list.append(
                 BasicViewer(
                     x=image,
                     y=mask,
-                    prediction=pred,
-                    description=desc,
+                    prediction=prediction,
+                    description=description,
                     figsize=self.figsize,
                     cmap=self.cmap,
                     mode=self.mode,
