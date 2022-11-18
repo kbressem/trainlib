@@ -383,12 +383,12 @@ class ListViewer:
     ):
         x = ensure_tuple(x, wrap_array=True)
         self.slice_range = (1, len(x))
-        x = x[0:max_n]
         if y is not None:
             y = ensure_tuple(y, wrap_array=True)  # type: ignore
             if len(x) != len(y):  # type: ignore
                 raise ValueError(f"Number of images ({len(x)}) and labels ({len(y)}) doesn't match")  # type: ignore
             y = y[0:max_n]  # type: ignore
+        x = x[0:max_n]
 
         self.x = x
         self.y = y

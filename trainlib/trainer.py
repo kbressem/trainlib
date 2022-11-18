@@ -1,7 +1,7 @@
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import ignite
 import monai
@@ -25,11 +25,13 @@ from monai.handlers import (
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
-from trainlib import loss, model, optimizer
 from trainlib.data import segmentation_dataloaders
 from trainlib.handlers import DebugHandler, PushnotificationHandler
+from trainlib.loss import get_loss
+from trainlib.model import get_model
+from trainlib.optimizer import get_optimizer
 from trainlib.transforms import get_post_transforms
-from trainlib.utils import USE_AMP, import_patched
+from trainlib.utils import USE_AMP
 
 
 def loss_logger(engine):
@@ -224,9 +226,9 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
 
         train_loader, val_loader = segmentation_dataloaders(config=config, train=True, valid=True, test=False)
 
-        network = self._get_model().to(config.device)
-        optimizer = self._get_optimizer(network)
-        loss_fn = self._get_loss()
+        network = get_model(config).to(config.device)
+        optimizer = get_optimizer(network, config)
+        loss_fn = get_loss(config)
         val_post_transforms = get_post_transforms(config=config)
         val_handlers = get_val_handlers(network, config=config)
         self.evaluator = get_evaluator(
@@ -259,7 +261,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         # add different metrics dynamically
         for m in metrics:
             getattr(monai.handlers, m)(
-                include_background=False,
+                include_background=True,
                 reduction="mean",
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
                 # from_engine(["pred", "label"]),
@@ -271,27 +273,6 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
 
         if save_latest_metrics:
             self._add_metrics_saver()
-
-    def _get_model(self) -> torch.nn.Module:
-        try:
-            get_model = import_patched(self.config.patch.model, "get_model")
-        except AttributeError:
-            get_model = model.get_model
-        return get_model(self.config)
-
-    def _get_optimizer(self, network: torch.nn.Module) -> torch.optim.Optimizer:
-        try:
-            get_optimizer = import_patched(self.config.patch.optimizer, "get_optimizer")
-        except AttributeError:
-            get_optimizer = optimizer.get_optimizer
-        return get_optimizer(network, self.config)
-
-    def _get_loss(self) -> Callable:
-        try:
-            get_loss = import_patched(self.config.patch.loss, "get_loss")
-        except AttributeError:
-            get_loss = loss.get_loss
-        return get_loss(self.config)
 
     def _prepare_dirs(self) -> None:
         """Set up directories for saving logs, outputs and configs of current training session"""
@@ -341,13 +322,14 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
 
     def _add_early_stopping(self) -> None:
         """Add early stopping handler to `SegmentationTrainer`"""
-        early_stopping = EarlyStopHandler(
-            patience=self.config.training.early_stopping_patience,
-            min_delta=1e-4,
-            score_function=lambda x: x.state.metrics[x.state.key_metric_name],
-            trainer=self,
-        )
-        self.evaluator.add_event_handler(ignite.engine.Events.COMPLETED, early_stopping)
+        if "early_stopping_patience" in self.config.training.keys():
+            early_stopping = EarlyStopHandler(
+                patience=self.config.training.early_stopping_patience,
+                min_delta=1e-4,
+                score_function=lambda x: x.state.metrics[x.state.key_metric_name],
+                trainer=self,
+            )
+            self.evaluator.add_event_handler(ignite.engine.Events.COMPLETED, early_stopping)
 
     def _add_metrics_logger(self) -> None:
         self.metric_logger = MetricLogger(evaluator=self.evaluator)
@@ -388,24 +370,25 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         key = f"{image_name}_meta_dict"
         return [item[key] for item in batch]
 
-    def load_checkpoint(self, checkpoint=None):
+    def load_checkpoint(self, checkpoint: Optional[Union[Path, str]] = None):
         if not checkpoint:
             # get name of last checkpoint
             fname = f"network_{self.config.run_id.split('/')[-1]}_key_metric={self.evaluator.state.best_metric:.4f}.pt"
             checkpoint = Path(self.config.model_dir) / fname
-        self.network.load_state_dict(torch.load(checkpoint))
+        self.network.load_state_dict(torch.load(str(checkpoint)))
 
-    def run(self, try_resume_from_checkpoint=False) -> None:
+    def run(self, checkpoint: Optional[Union[Path, str]] = None, try_autoresume_from_checkpoint=False) -> None:
         """Run training, if `try_resume_from_checkpoint` tries to
         load previous checkpoint stored at `self.config.model_dir`
         """
         model_dir = Path(self.config.model_dir)
-
-        if try_resume_from_checkpoint:
+        if checkpoint:
+            self.load_checkpoint(checkpoint)
+        elif try_autoresume_from_checkpoint:
             checkpoints = [
                 (model_dir / checkpoint_name)
                 for checkpoint_name in model_dir.glob("*")
-                if str(self.config.run_id).split("/")[-1] in checkpoint_name  # type: ignore
+                if str(self.config.run_id).split("/")[-1] in str(checkpoint_name)  # type: ignore
             ]
             try:
                 checkpoint = sorted(checkpoints)[-1]
@@ -437,6 +420,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
                 max_lr=self.optimizer.param_groups[0]["lr"],
                 epochs=self.state.max_epochs,
                 steps_per_epoch=self.state.epoch_length,
+                verbose=self.config.debug,
             ),
             epoch_level=False,
             name="FitOneCycle",
