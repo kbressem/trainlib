@@ -237,7 +237,7 @@ def segmentation_dataloaders(
     path_cols = deepcopy(image_cols)
     for col in label_cols:
         try:
-            path = train_df[col][0]
+            path = list(train_df[col])[0]
             path = Path(data_dir).resolve() / path
         except (KeyError, TypeError):
             continue
