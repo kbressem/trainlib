@@ -1,12 +1,39 @@
 import inspect
-from typing import Callable, List
+from typing import Callable, Dict, List, Mapping, Hashable
+
 
 import monai
 import munch
-from monai.transforms import Compose
+from monai.transforms import Compose, MapTransform
 from monai.utils.enums import CommonKeys
+from monai.config.type_definitions import KeysCollection, NdarrayOrTensor
+from monai.transforms.utils import TransformBackends
 
 from trainlib.utils import import_patched
+
+
+class UnsqueezeDimd(MapTransform):
+    """
+    Dictionary-based wrapper of :py:class:`monai.transforms.AddChannel`.
+    """
+
+    backend = [TransformBackends.TORCH, TransformBackends.NUMPY]
+
+    def __init__(self, dim: int, keys: KeysCollection, allow_missing_keys: bool = False) -> None:
+        """
+        Args:
+            keys: keys of the corresponding items to be transformed.
+                See also: :py:class:`monai.transforms.compose.MapTransform`
+            allow_missing_keys: don't raise exception if key is missing.
+        """
+        super().__init__(keys, allow_missing_keys)
+        self.dim = dim
+
+    def __call__(self, data: Mapping[Hashable, NdarrayOrTensor]) -> Dict[Hashable, NdarrayOrTensor]:
+        d = dict(data)
+        for key in self.key_iterator(d):
+            d[key] = d[key].unsqueeze(self.dim)
+        return d
 
 
 def get_transform(tfm_name: str, config: munch.Munch, **kwargs):
@@ -161,8 +188,7 @@ def get_post_transforms(config: munch.Munch):
             config=config,
             keys=[CommonKeys.PRED, CommonKeys.LABEL],
             argmax=[True, False],
-            to_onehot=out_channels,
-            num_classes=out_channels,
+            to_onehot=out_channels
         ),
     ]
 
@@ -170,4 +196,13 @@ def get_post_transforms(config: munch.Munch):
         tfm_names = list(config.transforms.postprocessing)
         tfms += [get_transform(tn, config) for tn in tfm_names]
 
+    # Items pass through the transforms pipeline as C x WH[D]
+    # But metrics expect them to be B x C x WH[D]
+    # We need to add the missing batch-dim, otherwise calculated metrics are wrong
+    tfms += [
+        UnsqueezeDimd(
+            keys=[CommonKeys.PRED, CommonKeys.LABEL], 
+            dim=0 
+        )
+    ]
     return Compose(tfms)
