@@ -144,7 +144,7 @@ def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: mun
     """
 
     train_handlers = [
-        ValidationHandler(validator=evaluator, interval=1, epoch_level=True),
+        ValidationHandler(validator=evaluator, interval=1 if not "validation_interval" in config.keys() else config.validation_interval, epoch_level=True),
         StatsHandler(tag_name="train_loss", output_transform=from_engine(["loss"], first=True)),
         StatsHandler(tag_name="loss_logger", iteration_print_logger=loss_logger),
         TensorBoardStatsHandler(
@@ -196,6 +196,7 @@ def get_evaluator(
         key_val_metric={
             "val_mean_dice": MeanDice(
                 include_background=False,
+                reduction="mean",
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
             )
         },
@@ -348,7 +349,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         metric_saver = MetricsSaver(
             save_dir=self.config.out_dir,
             metric_details="*",
-            batch_transform=self._get_meta_dict,
+            batch_transform=self._get_meta_dict, 
             delimiter=",",
         )
         metric_saver.attach(self.evaluator)
@@ -366,9 +367,8 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
     def _get_meta_dict(self, batch) -> list:
         """Get dict of metadata from engine. Needed as `batch_transform`"""
         image_cols = self.config.data.image_cols
-        image_name = image_cols[0] if isinstance(image_cols, list) else image_cols
-        key = f"{image_name}_meta_dict"
-        return [item[key] for item in batch]
+        key = image_cols[0] if isinstance(image_cols, list) else image_cols
+        return [item[key].meta for item in batch]
 
     def load_checkpoint(self, checkpoint: Optional[Union[Path, str]] = None):
         if not checkpoint:
