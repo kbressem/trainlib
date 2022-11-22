@@ -1,13 +1,14 @@
 import inspect
-from typing import Callable, Dict, List, Mapping, Hashable
-
+from typing import Callable, Dict, Hashable, List, Mapping
 
 import monai
 import munch
-from monai.transforms import Compose, MapTransform
-from monai.utils.enums import CommonKeys
+import torch
 from monai.config.type_definitions import KeysCollection, NdarrayOrTensor
+from monai.transforms import Compose, MapTransform
 from monai.transforms.utils import TransformBackends
+from monai.utils.enums import CommonKeys
+from monai.utils.type_conversion import convert_data_type
 
 from trainlib.utils import import_patched
 
@@ -29,10 +30,16 @@ class UnsqueezeDimd(MapTransform):
         super().__init__(keys, allow_missing_keys)
         self.dim = dim
 
+    def unsqueeze(self, input: NdarrayOrTensor) -> NdarrayOrTensor:
+        input_, prev_type, device = convert_data_type(input, torch.Tensor)
+        input = input_.unsqueeze(self.dim)
+        input, *_ = convert_data_type(input_, prev_type, device)
+        return input
+
     def __call__(self, data: Mapping[Hashable, NdarrayOrTensor]) -> Dict[Hashable, NdarrayOrTensor]:
         d = dict(data)
         for key in self.key_iterator(d):
-            d[key] = d[key].unsqueeze(self.dim)
+            d[key] = self.unsqueeze(d[key])
         return d
 
 
@@ -188,7 +195,7 @@ def get_post_transforms(config: munch.Munch):
             config=config,
             keys=[CommonKeys.PRED, CommonKeys.LABEL],
             argmax=[True, False],
-            to_onehot=out_channels
+            to_onehot=out_channels,
         ),
     ]
 
@@ -199,10 +206,5 @@ def get_post_transforms(config: munch.Munch):
     # Items pass through the transforms pipeline as C x WH[D]
     # But metrics expect them to be B x C x WH[D]
     # We need to add the missing batch-dim, otherwise calculated metrics are wrong
-    tfms += [
-        UnsqueezeDimd(
-            keys=[CommonKeys.PRED, CommonKeys.LABEL], 
-            dim=0 
-        )
-    ]
+    tfms += [UnsqueezeDimd(keys=[CommonKeys.PRED, CommonKeys.LABEL], dim=0)]
     return Compose(tfms)

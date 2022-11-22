@@ -469,17 +469,19 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         checkpoint: Optional[str] = None,
         roi_size: Tuple[int, ...] = (96, 96, 96),
         sw_batch_size: int = 16,
-        overlap: int = 0.75,
+        overlap: float = 0.75,
         return_input: bool = True,
-        progress: bool = False, 
-        **kwargs, 
+        progress: bool = False,
+        **kwargs,
     ):
         """Predict on single image or sequence from a single examination"""
         if checkpoint:
             self.load_checkpoint(checkpoint)
         self.network.eval()
 
-        inferer = monai.inferers.SlidingWindowInferer(roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap, progress=progress, **kwargs)
+        inferer = monai.inferers.SlidingWindowInferer(
+            roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap, progress=progress, **kwargs
+        )
 
         if isinstance(file, str):
             file = [file]
