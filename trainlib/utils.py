@@ -4,7 +4,8 @@ import multiprocessing
 import resource
 import sys
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Sequence, Union
+from attr import has
 
 import monai
 import munch
@@ -16,6 +17,19 @@ logger = logging.getLogger(__name__)
 
 USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)  # type: ignore
 
+def _infer_input_size_from_transforms(config) -> Sequence[int]: 
+    """Tries to extract the input size from base or train transforms. 
+    If multiple resizing steps are done in the transform pipeline, the last 
+    step will be used. If not resizing is performed, a size of 96px is used as defaults value.
+    """
+    
+    if "train" in config.transforms.keys(): 
+        size = [v for value in config.transforms.train.values() for k,v in value.items()  if k == "spatial_size"][-1]
+    elif "base" in config.transforms.keys(): 
+        size = [v for value in config.transforms.base.values() for k,v in value.items()  if k == "spatial_size"][-1]
+    else: 
+        size = [96] * config.ndim
+    return size
 
 def load_config(fn: Union[Path, str] = "config.yaml") -> munch.Munch:
     """Load config from YAML and return a serialized dictionary object"""
@@ -40,6 +54,7 @@ def load_config(fn: Union[Path, str] = "config.yaml") -> munch.Munch:
         config.data.label_cols = [config.data.label_cols]
 
     config.transforms.mode = ("bilinear",) * len(config.data.image_cols) + ("nearest",) * len(config.data.label_cols)
+    config.input_size = _infer_input_size_from_transforms(config=config)
     return config
 
 

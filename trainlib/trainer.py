@@ -191,7 +191,7 @@ def get_evaluator(
         device=device,
         val_data_loader=val_data_loader,
         network=network,
-        inferer=monai.inferers.SlidingWindowInferer(roi_size=(96,) * config.ndim, sw_batch_size=2, overlap=0.25),
+        inferer=monai.inferers.SlidingWindowInferer(roi_size=config.input_size, sw_batch_size=2, overlap=0.25),
         # postprocessing=val_post_transforms,
         key_val_metric={
             "val_mean_dice": MeanDice(
@@ -261,7 +261,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         # add different metrics dynamically
         for m in metrics:
             getattr(monai.handlers, m)(
-                include_background=True,
+                include_background=False,
                 reduction="mean",
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
                 # from_engine(["pred", "label"]),
@@ -466,22 +466,26 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
     def predict(
         self,
         file: Union[str, List[str]],
-        checkpoint=None,
-        roi_size: Tuple[int, int, int] = (96, 96, 96),
-        sw_batch_size=16,
-        overlap=0.75,
-        return_input=True,
+        checkpoint: Optional[str] = None,
+        roi_size: Tuple[int, ...] = (96, 96, 96),
+        sw_batch_size: int = 16,
+        overlap: int = 0.75,
+        return_input: bool = True,
+        progress: bool = False, 
+        **kwargs, 
     ):
         """Predict on single image or sequence from a single examination"""
         if checkpoint:
             self.load_checkpoint(checkpoint)
-        dataloader = segmentation_dataloaders(self.config, train=False, valid=False, test=True)
+        self.network.eval()
+
+        inferer = monai.inferers.SlidingWindowInferer(roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap, progress=progress, **kwargs)
+
         if isinstance(file, str):
             file = [file]
         images = {col_name: f for col_name, f in zip(self.config.data.image_cols, file)}
+        dataloader = segmentation_dataloaders(self.config, train=False, valid=False, test=True)
         dataloader.dataset.data = [images]
-        inferer = monai.inferers.SlidingWindowInferer(roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap)
-        self.network.eval()
         with torch.no_grad():
             for batch in dataloader:
                 data = batch["image"].to(self.config.device)
