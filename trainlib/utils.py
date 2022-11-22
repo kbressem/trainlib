@@ -24,12 +24,14 @@ def _infer_input_size_from_transforms(config) -> Sequence[int]:
     """
 
     if "train" in config.transforms.keys():
-        size = [v for value in config.transforms.train.values() for k, v in value.items() if k == "spatial_size"][-1]
+        size = [v for value in config.transforms.train.values() for k, v in value.items() if k == "spatial_size"]
     elif "base" in config.transforms.keys():
-        size = [v for value in config.transforms.base.values() for k, v in value.items() if k == "spatial_size"][-1]
+        size = [v for value in config.transforms.base.values() for k, v in value.items() if k == "spatial_size"]
+
+    if len(size) > 0:
+        return size[-1]
     else:
-        size = [96] * config.ndim
-    return size
+        return [96] * config.ndim
 
 
 def load_config(fn: Union[Path, str] = "config.yaml") -> munch.Munch:

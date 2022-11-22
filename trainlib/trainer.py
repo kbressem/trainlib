@@ -144,7 +144,11 @@ def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: mun
     """
 
     train_handlers = [
-        ValidationHandler(validator=evaluator, interval=1 if not "validation_interval" in config.keys() else config.validation_interval, epoch_level=True),
+        ValidationHandler(
+            validator=evaluator,
+            interval=1 if "validation_interval" not in config.keys() else config.validation_interval,
+            epoch_level=True,
+        ),
         StatsHandler(tag_name="train_loss", output_transform=from_engine(["loss"], first=True)),
         StatsHandler(tag_name="loss_logger", iteration_print_logger=loss_logger),
         TensorBoardStatsHandler(
@@ -349,7 +353,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         metric_saver = MetricsSaver(
             save_dir=self.config.out_dir,
             metric_details="*",
-            batch_transform=self._get_meta_dict, 
+            batch_transform=self._get_meta_dict,
             delimiter=",",
         )
         metric_saver.attach(self.evaluator)
