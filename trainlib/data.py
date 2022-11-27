@@ -245,13 +245,18 @@ def segmentation_dataloaders(
 
     for col in image_cols + label_cols:
         # create absolute file name from relative fn in df and data_dir
-        train_df[col] = [
-            _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in train_df[col]
-        ]
-        valid_df[col] = [
-            _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in valid_df[col]
-        ]
-        test_df[col] = [_resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in test_df[col]]
+        if train:
+            train_df[col] = [
+                _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in train_df[col]
+            ]
+        if valid:
+            valid_df[col] = [
+                _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in valid_df[col]
+            ]
+        if test:
+            test_df[col] = [
+                _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in test_df[col]
+            ]
 
     # Dataframes should now be converted to a dict
     # The data_dict looks like this:
