@@ -3,10 +3,9 @@
 import logging
 import shutil
 from collections import namedtuple
-from copy import deepcopy
 from functools import partial
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import munch
 import pandas as pd
@@ -46,6 +45,17 @@ def _default_image_transform_3d(image: torch.Tensor) -> torch.Tensor:
 
 def _default_image_transform_2d(image: torch.Tensor) -> torch.Tensor:
     return image.squeeze().transpose(-2, -1)
+
+
+def _resolve_if_exists(
+    data_dir: Path, filename: Union[str, Path], warn_if_nonexistent: bool = False
+) -> Union[str, Path]:
+    full_fn = data_dir / filename
+    if full_fn.exists():
+        return full_fn
+    elif warn_if_nonexistent:
+        logger.warn(f"{str(full_fn)} does not exist")
+    return filename
 
 
 class DataLoader(MonaiDataLoader):
@@ -233,22 +243,15 @@ def segmentation_dataloaders(
         train_df = train_df.sample(10)
         valid_df = valid_df.sample(5)
 
-    # Assemble columns that contain a path
-    path_cols = deepcopy(image_cols)
-    for col in label_cols:
-        try:
-            path = train_df[col][0]
-            path = Path(data_dir).resolve() / path
-        except (KeyError, TypeError):
-            continue
-        if path.exists():
-            path_cols.append(col)
-
-    for col in path_cols:
+    for col in image_cols + label_cols:
         # create absolute file name from relative fn in df and data_dir
-        train_df[col] = data_dir / train_df[col]
-        valid_df[col] = data_dir / valid_df[col]
-        test_df[col] = data_dir / test_df[col]
+        train_df[col] = [
+            _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in train_df[col]
+        ]
+        valid_df[col] = [
+            _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in valid_df[col]
+        ]
+        test_df[col] = [_resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in test_df[col]]
 
     # Dataframes should now be converted to a dict
     # The data_dict looks like this:
