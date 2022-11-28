@@ -261,7 +261,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         # add different metrics dynamically
         for m in metrics:
             getattr(monai.handlers, m)(
-                include_background=True,
+                include_background=False,
                 reduction="mean",
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
                 # from_engine(["pred", "label"]),

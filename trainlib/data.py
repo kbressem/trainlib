@@ -54,7 +54,7 @@ def _resolve_if_exists(
     if full_fn.exists():
         return full_fn
     elif warn_if_nonexistent:
-        logger.warn(f"{str(full_fn)} does not exist")
+        logger.warning(f"{str(full_fn)} does not exist")
     return filename
 
 
