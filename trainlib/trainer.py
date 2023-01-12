@@ -1,7 +1,7 @@
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import ignite
 import monai
@@ -11,6 +11,7 @@ import yaml
 from codecarbon import EmissionsTracker
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from monai.handlers import (
+    ROCAUC,
     CheckpointSaver,
     EarlyStopHandler,
     MeanDice,
@@ -25,13 +26,13 @@ from monai.handlers import (
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
-from trainlib.data import segmentation_dataloaders
+from trainlib.data import dataloaders
 from trainlib.handlers import DebugHandler, PushnotificationHandler
 from trainlib.loss import get_loss
 from trainlib.model import get_model
 from trainlib.optimizer import get_optimizer
 from trainlib.transforms import get_post_transforms
-from trainlib.utils import USE_AMP
+from trainlib.utils import USE_AMP, confusion_matrix_metrics
 
 
 def loss_logger(engine):
@@ -187,18 +188,31 @@ def get_evaluator(
     if callable(val_handlers):
         val_handlers = val_handlers()
 
-    evaluator = monai.engines.SupervisedEvaluator(
-        device=device,
-        val_data_loader=val_data_loader,
-        network=network,
-        inferer=monai.inferers.SlidingWindowInferer(roi_size=(96,) * config.ndim, sw_batch_size=2, overlap=0.25),
-        # postprocessing=val_post_transforms,
-        key_val_metric={
+    if config.task == "segmentation":
+        inferer: monai.inferers.Inferer = monai.inferers.SlidingWindowInferer(
+            roi_size=(96,) * config.ndim, sw_batch_size=2, overlap=0.25
+        )
+        key_val_metric: Dict[str, Any] = {
             "val_mean_dice": MeanDice(
                 include_background=False,
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
             )
-        },
+        }
+    elif config.taks == "classification":
+        inferer = monai.inferers.SimpleInferer()
+        key_val_metric = {
+            "val_mean_auroc": ROCAUC(
+                average="weighted",
+                output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+            )
+        }
+
+    evaluator = monai.engines.SupervisedEvaluator(
+        device=device,
+        val_data_loader=val_data_loader,
+        network=network,
+        inferer=inferer,
+        key_val_metric=key_val_metric,
         val_handlers=val_handlers,  # type: ignore
         # if no FP16 support in GPU or PyTorch version < 1.6, will not enable AMP evaluation
         amp=USE_AMP and config.device != torch.device("cpu"),
@@ -208,15 +222,13 @@ def get_evaluator(
     return evaluator
 
 
-class SegmentationTrainer(monai.engines.SupervisedTrainer):
-    """Default Trainer für supervised segmentation task"""
-
+class BaseTrainer(monai.engines.SupervisedTrainer):
     def __init__(
         self,
         config: munch.Munch,
         progress_bar: bool = True,
         early_stopping: bool = True,
-        metrics: Union[List, Tuple[str, ...]] = ("MeanDice", "HausdorffDistance", "SurfaceDistance"),
+        metrics: Union[List, Tuple[str, ...]] = ["MeanDice"],
         save_latest_metrics: bool = True,
     ):
         self.config = config
@@ -224,13 +236,14 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self._backup_library_and_configuration()
         self.config.device = torch.device(self.config.device)
 
-        train_loader, val_loader = segmentation_dataloaders(config=config, train=True, valid=True, test=False)
-
         network = get_model(config).to(config.device)
         optimizer = get_optimizer(network, config)
         loss_fn = get_loss(config)
         val_post_transforms = get_post_transforms(config=config)
         val_handlers = get_val_handlers(network, config=config)
+
+        train_loader, val_loader = dataloaders(config=config, train=True, valid=True, test=False)
+
         self.evaluator = get_evaluator(
             config=config,
             device=config.device,
@@ -259,13 +272,19 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
 
         self.schedulers: List = []
         # add different metrics dynamically
+
         for m in metrics:
-            getattr(monai.handlers, m)(
-                include_background=False,
-                reduction="mean",
-                output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
-                # from_engine(["pred", "label"]),
-            ).attach(self.evaluator, m)
+            metric_args = {
+                "include_background": False,
+                "reduction": "weighted" if m == "ROCAUC" else "mean",
+                "output_transform": lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+            }
+            if m in confusion_matrix_metrics:
+                metric_args["metric_name"] = m
+                metric = getattr(monai.handlers, "ConfusionMatrix")(**metric_args)
+            else:
+                metric = getattr(monai.handlers, m)(**metric_args)
+            metric.attach(self.evaluator, m)
 
         self._add_metrics_logger()
         # add eval loss to metrics
@@ -463,6 +482,26 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self.evaluator.run()
         print(f"metrics saved to {self.config.out_dir}")
 
+
+class SegmentationTrainer(BaseTrainer):
+    """Default Trainer für supervised segmentation task"""
+
+    def __init__(
+        self,
+        config: munch.Munch,
+        progress_bar: bool = True,
+        early_stopping: bool = True,
+        metrics: Union[List, Tuple[str, ...]] = ("MeanDice", "HausdorffDistance", "SurfaceDistance"),
+        save_latest_metrics: bool = True,
+    ):
+        super().__init__(
+            config=config,
+            progress_bar=progress_bar,
+            early_stopping=early_stopping,
+            metrics=metrics,
+            save_latest_metrics=save_latest_metrics,
+        )
+
     def predict(
         self,
         file: Union[str, List[str]],
@@ -475,7 +514,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         """Predict on single image or sequence from a single examination"""
         if checkpoint:
             self.load_checkpoint(checkpoint)
-        dataloader = segmentation_dataloaders(self.config, train=False, valid=False, test=True)
+        dataloader = dataloaders(self.config, train=False, valid=False, test=True)
         if isinstance(file, str):
             file = [file]
         images = {col_name: f for col_name, f in zip(self.config.data.image_cols, file)}
@@ -519,3 +558,30 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             separate_folder=False,
         )
         prediction = writer(prediction, meta_dict)
+
+
+class ClassificationTrainer(BaseTrainer):
+    """Default Trainer for supervised classification tasks"""
+
+    def __init__(
+        self,
+        config: munch.Munch,
+        progress_bar: bool = True,
+        early_stopping: bool = True,
+        metrics: Union[List, Tuple[str, ...]] = (
+            "ROCAUC",
+            "sensitivity",
+            "accuracy",
+            "balanced accuracy",
+            "f1 score",
+            "matthews correlation coefficient",
+        ),
+        save_latest_metrics: bool = True,
+    ):
+        super().__init__(
+            config=config,
+            progress_bar=progress_bar,
+            early_stopping=early_stopping,
+            metrics=metrics,
+            save_latest_metrics=save_latest_metrics,
+        )

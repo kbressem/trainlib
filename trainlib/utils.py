@@ -106,3 +106,24 @@ class ShapeMissmatchError(Exception):
     def __init__(self, a, b):
         message = f"Shapes of x {a.shape} and y {b.shape} do not match."
         super().__init__(message)
+
+
+confusion_matrix_metrics = [
+    "sensitivity",
+    "specificity",
+    "precision",
+    "negative predictive value",
+    "miss rate",
+    "fall out",
+    "false discovery rate",
+    "false omission rate",
+    "prevalence threshold",
+    "threat score",
+    "accuracy",
+    "balanced accuracy",
+    "f1 score",
+    "matthews correlation coefficient",
+    "fowlkes mallows index",
+    "informedness",
+    "markedness",
+]

@@ -323,3 +323,20 @@ def segmentation_dataloaders(
             " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),
         )
         return DataLoaders(*data_loaders)
+
+
+def classification_dataloaders(
+    config: munch.Munch, train: Optional[bool] = None, valid: Optional[bool] = None, test: Optional[bool] = None
+):
+    raise NotImplementedError
+
+
+def dataloaders(
+    config: munch.Munch, train: Optional[bool] = None, valid: Optional[bool] = None, test: Optional[bool] = None
+):
+    if config.task == "segmentation":
+        return segmentation_dataloaders(config=config, train=train, valid=valid, test=test)
+    elif config.task == "classification":
+        return classification_dataloaders(config=config, train=train, valid=valid, test=test)
+    else:
+        raise NotImplementedError
