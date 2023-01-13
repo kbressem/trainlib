@@ -168,5 +168,5 @@ def patches_to_image(patches: List[sitk.Image], meta_dict: Optional[dict] = None
     image = sum([sitk.Resample(p, reference) for p in patches])
     if meta_dict:
         for k in meta_dict.keys():
-            image.SetMetaData(k, meta_dict[k])
-    return image
+            image.SetMetaData(k, meta_dict[k])  # type: ignore
+    return image  # type: ignore

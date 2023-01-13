@@ -3,9 +3,9 @@ import unittest
 from copy import deepcopy
 from pathlib import Path
 
-from test_utils import TEST_CONFIG_SEGM
+from test_utils import TEST_CONFIG_CLF, TEST_CONFIG_SEGM
 
-from trainlib.trainer import SegmentationTrainer
+from trainlib.trainer import ClassificationTrainer, SegmentationTrainer
 
 
 class TestSegmentationTrainer3d(unittest.TestCase):
@@ -79,6 +79,20 @@ class TestSegmentationTrainer2d(unittest.TestCase):
 
     def test_one_epoch(self):
         trainer = SegmentationTrainer(config=self.config)
+        trainer.run()
+
+
+class TestClassificationTrainer3d(unittest.TestCase):
+    config = deepcopy(TEST_CONFIG_CLF)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
+        shutil.rmtree(self.config.model_dir, ignore_errors=True)
+        shutil.rmtree(self.config.data.cache_dir, ignore_errors=True)
+        super().tearDown()
+
+    def test_one_epoch(self):
+        trainer = ClassificationTrainer(config=self.config)
         trainer.run()
 
 

@@ -197,3 +197,30 @@ class DebugHandler:
         items = [str(i)[:18] for i in items]
         format_row = "{:>20}" * (len(items) + 1)
         return "\n" + format_row.format("", *items)
+
+
+class EnsureTensor:
+    """Ensures labes are always a Tensor and avoid errors from conversion to other classes"""
+
+    def attach(self, engine: ignite.engine.Engine) -> None:
+        """
+        Args:
+            engine: Ignite Engine, should be an evaluator with metrics.
+        """
+        engine.add_event_handler(ignite.engine.Events.ITERATION_COMPLETED, self.ensure_tensor)
+        engine.add_event_handler(ignite.engine.Events.EPOCH_COMPLETED, self.ensure_tensor)
+        engine.add_event_handler(ignite.engine.Events.COMPLETED, self.ensure_tensor)
+
+    def ensure_tensor(self, engine: ignite.engine.Engine) -> None:
+        "Forces label to be torch.Tensor"
+        label = engine.state.output[0]["label"]  # type: ignore
+        if not isinstance(label, torch.Tensor):
+            if isinstance(label, int):
+                label = [label]
+            engine.state.output[0]["label"] = torch.tensor(label)   # type: ignore
+
+        label = engine.state.batch[0]["label"]   # type: ignore
+        if not isinstance(label, torch.Tensor):
+            if isinstance(label, int):
+                label = [label]
+            engine.state.batch[0]["label"] = torch.tensor(label)   # type: ignore

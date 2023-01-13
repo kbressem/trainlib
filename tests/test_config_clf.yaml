@@ -49,8 +49,10 @@ transforms:
     EnsureChannelFirstd:
       keys: image
       allow_missing_keys: true
+    ToTensord:
+      keys: label
     Spacingd:
-      keyss: image
+      keys: image
       pixdim: [2, 2, 2]
       mode: bilinear
   prob: 0.1

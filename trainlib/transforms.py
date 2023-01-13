@@ -9,6 +9,32 @@ from monai.utils.enums import CommonKeys
 from trainlib.utils import import_patched
 
 
+def _concat_image_and_maybe_label(config: munch.Munch) -> List[Callable]:
+    """Final concatenation of images and label, so that they can be accessed via a standardized key"""
+
+    concat_transforms = [
+        get_transform(
+            "ConcatItemsd",
+            config=config,
+            keys=config.data.image_cols,
+            name=CommonKeys.IMAGE,
+            dim=0,
+        )
+    ]
+
+    if config.task == "segmentation":
+        concat_transforms += [
+            get_transform(
+                "ConcatItemsd",
+                config=config,
+                keys=config.data.label_cols,
+                name=CommonKeys.LABEL,
+                dim=0,
+            )
+        ]
+    return concat_transforms
+
+
 def get_transform(tfm_name: str, config: munch.Munch, **kwargs):
     """Get transform from monai.transforms with arguments from config"""
     try:
@@ -68,22 +94,7 @@ def get_train_transforms(config: munch.Munch) -> Compose:
     # Rename images to `CommonKeys.IMAGE` and labels to `CommonKeys.LABELS`
     # for more compatibility with monai.engines
 
-    tfms += [
-        get_transform(
-            "ConcatItemsd",
-            config=config,
-            keys=config.data.image_cols,
-            name=CommonKeys.IMAGE,
-            dim=0,
-        ),
-        get_transform(
-            "ConcatItemsd",
-            config=config,
-            keys=config.data.label_cols,
-            name=CommonKeys.LABEL,
-            dim=0,
-        ),
-    ]
+    tfms += _concat_image_and_maybe_label(config)
 
     return Compose(tfms)
 
@@ -92,28 +103,13 @@ def get_val_transforms(config: munch.Munch) -> Compose:
     """Transforms applied only to the valid dataset"""
     tfms = get_base_transforms(config=config)
     tfms += [
-        get_transform("EnsureTyped", config=config),
+        get_transform("EnsureTyped", config=config, data_type="tensor"),
     ]
     if "valid" in config.transforms.keys():
         tfm_names = list(config.transforms.valid)
         tfms += [get_transform(tn, config) for tn in tfm_names]
 
-    tfms += [
-        get_transform(
-            "ConcatItemsd",
-            config=config,
-            keys=config.data.image_cols,
-            name=CommonKeys.IMAGE,
-            dim=0,
-        ),
-        get_transform(
-            "ConcatItemsd",
-            config=config,
-            keys=config.data.label_cols,
-            name=CommonKeys.LABEL,
-            dim=0,
-        ),
-    ]
+    tfms += _concat_image_and_maybe_label(config)
     return Compose(tfms)
 
 
@@ -127,23 +123,7 @@ def get_test_transforms(config: munch.Munch) -> Compose:
         tfm_names = list(config.transforms.test)
         tfms += [get_transform(tn, config) for tn in tfm_names]
 
-    tfms += [
-        get_transform(
-            "ConcatItemsd",
-            config=config,
-            keys=config.data.image_cols,
-            name=CommonKeys.IMAGE,
-            dim=0,
-        ),
-        get_transform(
-            "ConcatItemsd",
-            config=config,
-            keys=config.data.label_cols,
-            name=CommonKeys.LABEL,
-            dim=0,
-            allow_missing_keys=True,
-        ),
-    ]
+    tfms += _concat_image_and_maybe_label(config)
 
     return Compose(tfms)
 
@@ -151,18 +131,23 @@ def get_test_transforms(config: munch.Munch) -> Compose:
 def get_post_transforms(config: munch.Munch):
     """Transforms applied to the model output, before metrics are calculated"""
 
-    model_name = list(config.model.keys())[0]
-    out_channels = config.model[model_name].out_channels
+    tfms = [get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL])]
 
-    tfms = [
-        get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL]),
+    model_name = list(config.model.keys())[0]
+    model_dict = config.model[model_name]
+
+    for n in ["out_channels", "num_classes"]:
+        if n in model_dict.keys():
+            num_classes = model_dict[n]
+
+    tfms += [
         get_transform(
             "AsDiscreted",
             config=config,
             keys=[CommonKeys.PRED, CommonKeys.LABEL],
             argmax=[True, False],
-            to_onehot=out_channels,
-            num_classes=out_channels,
+            to_onehot=num_classes,
+            num_classes=num_classes,
         ),
     ]
 

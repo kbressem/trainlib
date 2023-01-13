@@ -13,26 +13,30 @@ from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from monai.handlers import (
     ROCAUC,
     CheckpointSaver,
+    ConfusionMatrix,
     EarlyStopHandler,
+    HausdorffDistance,
     MeanDice,
     MetricLogger,
     MetricsSaver,
     StatsHandler,
+    SurfaceDistance,
     TensorBoardImageHandler,
     TensorBoardStatsHandler,
     ValidationHandler,
     from_engine,
 )
+from monai.handlers.ignite_metric import IgniteMetric
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
 from trainlib.data import dataloaders
-from trainlib.handlers import DebugHandler, PushnotificationHandler
+from trainlib.handlers import DebugHandler, EnsureTensor, PushnotificationHandler
 from trainlib.loss import get_loss
 from trainlib.model import get_model
 from trainlib.optimizer import get_optimizer
 from trainlib.transforms import get_post_transforms
-from trainlib.utils import USE_AMP, confusion_matrix_metrics
+from trainlib.utils import USE_AMP
 
 
 def loss_logger(engine):
@@ -52,7 +56,7 @@ def loss_logger(engine):
 
 def metric_logger(engine):
     """Write `metrics` after each epoch to file"""
-    if engine.state.epoch > 1:  # only key metric is calcualted in 1st epoch, needs fix
+    if engine.state.epoch > 1:  # only key metric is calculated in 1st epoch, needs fix
         metric_names = list(engine.state.metrics.keys())
         metrics = [str(engine.state.metrics[mn]) for mn in metric_names]
         log_file = Path(engine.config.log_dir) / "metric_logs.csv"
@@ -122,6 +126,7 @@ def get_val_handlers(network: torch.nn.Module, config: munch.Munch) -> List:
         ),
         PushnotificationHandler(config=config),
         DebugHandler(config=config),
+        EnsureTensor(),
     ]
 
     return val_handlers
@@ -198,7 +203,7 @@ def get_evaluator(
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
             )
         }
-    elif config.taks == "classification":
+    elif config.task == "classification":
         inferer = monai.inferers.SimpleInferer()
         key_val_metric = {
             "val_mean_auroc": ROCAUC(
@@ -206,6 +211,10 @@ def get_evaluator(
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
             )
         }
+    else:
+        raise NotImplementedError(
+            f"task {config.task} not implemented. Supported tasks are `classification`, `segmentation`"
+        )
 
     evaluator = monai.engines.SupervisedEvaluator(
         device=device,
@@ -228,7 +237,7 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
         config: munch.Munch,
         progress_bar: bool = True,
         early_stopping: bool = True,
-        metrics: Union[List, Tuple[str, ...]] = ["MeanDice"],
+        metrics: Union[List[IgniteMetric], Tuple[IgniteMetric, ...], None] = None,
         save_latest_metrics: bool = True,
     ):
         self.config = config
@@ -273,18 +282,9 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
         self.schedulers: List = []
         # add different metrics dynamically
 
-        for m in metrics:
-            metric_args = {
-                "include_background": False,
-                "reduction": "weighted" if m == "ROCAUC" else "mean",
-                "output_transform": lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
-            }
-            if m in confusion_matrix_metrics:
-                metric_args["metric_name"] = m
-                metric = getattr(monai.handlers, "ConfusionMatrix")(**metric_args)
-            else:
-                metric = getattr(monai.handlers, m)(**metric_args)
-            metric.attach(self.evaluator, m)
+        if metrics is not None:
+            for m in metrics:
+                m.attach(self.evaluator, m.__class__.__name__)
 
         self._add_metrics_logger()
         # add eval loss to metrics
@@ -372,14 +372,20 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
         )
         metric_saver.attach(self.evaluator)
 
+    def _output_transform(self, output: List) -> Tuple:
+        pred = output[0]["pred"].unsqueeze(0)
+        label = output[0]["label"]
+        if self.config.task == "segmentation":
+            label = label.unsqueeze(0)
+        elif self.config.task == "classification":
+            if isinstance(label, int):
+                label = [label]
+            label = torch.tensor(label).long()
+        return (pred, label)
+
     def _add_eval_loss(self) -> None:
-        eval_loss_handler = ignite.metrics.Loss(
-            loss_fn=self.loss_function,
-            output_transform=lambda output: (
-                output[0]["pred"].unsqueeze(0),  # add batch dim
-                output[0]["label"].unsqueeze(0),  # add batch dim
-            ),
-        )
+
+        eval_loss_handler = ignite.metrics.Loss(loss_fn=self.loss_function, output_transform=self._output_transform)
         eval_loss_handler.attach(self.evaluator, "eval_loss")
 
     def _get_meta_dict(self, batch) -> list:
@@ -491,9 +497,13 @@ class SegmentationTrainer(BaseTrainer):
         config: munch.Munch,
         progress_bar: bool = True,
         early_stopping: bool = True,
-        metrics: Union[List, Tuple[str, ...]] = ("MeanDice", "HausdorffDistance", "SurfaceDistance"),
+        metrics: Union[List[IgniteMetric], Tuple[IgniteMetric, ...], None] = None,
         save_latest_metrics: bool = True,
     ):
+
+        if metrics is None:
+            metrics = self._default_metrics(config)
+
         super().__init__(
             config=config,
             progress_bar=progress_bar,
@@ -501,6 +511,16 @@ class SegmentationTrainer(BaseTrainer):
             metrics=metrics,
             save_latest_metrics=save_latest_metrics,
         )
+
+    def _default_metrics(self, config: munch.Munch) -> List[IgniteMetric]:
+        val_post_transforms = get_post_transforms(config=config)
+        metric_args = {
+            "include_background": False,
+            "reduction": "mean",
+            "output_transform": lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+        }
+        metrics = [m(**metric_args) for m in [MeanDice, HausdorffDistance, SurfaceDistance]]
+        return metrics
 
     def predict(
         self,
@@ -568,16 +588,13 @@ class ClassificationTrainer(BaseTrainer):
         config: munch.Munch,
         progress_bar: bool = True,
         early_stopping: bool = True,
-        metrics: Union[List, Tuple[str, ...]] = (
-            "ROCAUC",
-            "sensitivity",
-            "accuracy",
-            "balanced accuracy",
-            "f1 score",
-            "matthews correlation coefficient",
-        ),
+        metrics: Union[List[IgniteMetric], Tuple[IgniteMetric, ...], None] = None,
         save_latest_metrics: bool = True,
     ):
+
+        if metrics is None:
+            metrics = self._default_metrics(config)
+
         super().__init__(
             config=config,
             progress_bar=progress_bar,
@@ -585,3 +602,29 @@ class ClassificationTrainer(BaseTrainer):
             metrics=metrics,
             save_latest_metrics=save_latest_metrics,
         )
+
+    def _default_metrics(self, config: munch.Munch) -> List[IgniteMetric]:
+        val_post_transforms = get_post_transforms(config=config)
+        rocauc = ROCAUC(
+            average="weighted", output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x))
+        )
+        metrics = [rocauc]
+
+        cm_args: Dict[str, Any] = {
+            "include_background": False,
+            "reduction": "mean",
+            "output_transform": lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+        }
+        for metric_name in [
+            "sensitivity",
+            "specificity",
+            "precision",
+            "accuracy",
+            "balanced accuracy",
+            "f1 score",
+            "matthews correlation coefficient",
+        ]:
+            cm_args["metric_name"] = metric_name
+            metrics.append(ConfusionMatrix(**cm_args))
+
+        return metrics

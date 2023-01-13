@@ -7,10 +7,10 @@ import monai
 from monai.data import DataLoader
 from test_utils import TEST_CONFIG_SEGM
 
-from trainlib.data import import_dataset, segmentation_dataloaders
+from trainlib.data import dataloaders, import_dataset
 
 
-class TestSegmDatasetInit(unittest.TestCase):
+class TestDatasetInit(unittest.TestCase):
     config = TEST_CONFIG_SEGM
 
     def test_init_iterative_dataset(self):
@@ -42,20 +42,20 @@ class TestSegmentationDataLoaders(unittest.TestCase):
         self.config.data.dataset_type = "iterative"
 
     def test_init(self):
-        dataloaders = segmentation_dataloaders(self.config)
-        self.assertTrue(len(dataloaders) == 2)
-        self.assertIsInstance(dataloaders[0], DataLoader)
-        self.assertIsInstance(dataloaders[1], DataLoader)
+        segmentation_dataloaders = dataloaders(self.config)
+        self.assertTrue(len(segmentation_dataloaders) == 2)
+        self.assertIsInstance(segmentation_dataloaders[0], DataLoader)
+        self.assertIsInstance(segmentation_dataloaders[1], DataLoader)
 
     def test_show_batch(self):
-        dataloaders = segmentation_dataloaders(self.config)
-        self.assertTrue(hasattr(dataloaders[0], "show_batch"))
-        self.assertTrue(hasattr(dataloaders[1], "show_batch"))
+        segmentation_dataloaders = dataloaders(self.config)
+        self.assertTrue(hasattr(segmentation_dataloaders[0], "show_batch"))
+        self.assertTrue(hasattr(segmentation_dataloaders[1], "show_batch"))
 
     def test_sanity_check(self):
-        train_dataloader = segmentation_dataloaders(self.config)[0]
+        train_dataloader = dataloaders(self.config)[0]
         with self.assertLogs("trainlib", level="INFO") as _:
-            train_dataloader.sanity_check(task="segmentation", sample_size=2)
+            train_dataloader.sanity_check(sample_size=2)
 
 
 if __name__ == "__main__":

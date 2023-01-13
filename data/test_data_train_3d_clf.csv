@@ -1,4 +1,4 @@
 image,label
-images/radiopaedia_10_85902_1.nii.gz,pneumonia
-images/radiopaedia_10_85902_3.nii.gz,no_penumonia
-images/radiopaedia_14_85914_0.nii.gz,pneumonia
+images/radiopaedia_10_85902_1.nii.gz,1
+images/radiopaedia_10_85902_3.nii.gz,0
+images/radiopaedia_14_85914_0.nii.gz,1
