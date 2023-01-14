@@ -217,10 +217,10 @@ class EnsureTensor:
         if not isinstance(label, torch.Tensor):
             if isinstance(label, int):
                 label = [label]
-            engine.state.output[0]["label"] = torch.tensor(label)   # type: ignore
+            engine.state.output[0]["label"] = torch.tensor(label)  # type: ignore
 
-        label = engine.state.batch[0]["label"]   # type: ignore
+        label = engine.state.batch[0]["label"]  # type: ignore
         if not isinstance(label, torch.Tensor):
             if isinstance(label, int):
                 label = [label]
-            engine.state.batch[0]["label"] = torch.tensor(label)   # type: ignore
+            engine.state.batch[0]["label"] = torch.tensor(label)  # type: ignore
