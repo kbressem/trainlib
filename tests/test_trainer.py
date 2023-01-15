@@ -96,5 +96,24 @@ class TestClassificationTrainer3d(unittest.TestCase):
         trainer.run()
 
 
+class TestClassificationTrainer2d(unittest.TestCase):
+    config = deepcopy(TEST_CONFIG_CLF)
+    config.data.train_csv = "../data/test_data_valid_2d_clf.csv"
+    config.data.valid_csv = "../data/test_data_valid_2d_clf.csv"
+    config.data.test_csv = "../data/test_data_valid_2d_clf.csv"
+    config.ndim = 2
+    config.data.dataset_type = "iterative"
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
+        shutil.rmtree(self.config.model_dir, ignore_errors=True)
+        shutil.rmtree(self.config.data.cache_dir, ignore_errors=True)
+        super().tearDown()
+
+    def test_one_epoch(self):
+        trainer = ClassificationTrainer(config=self.config)
+        trainer.run()
+
+
 if __name__ == "__main__":
     unittest.main()

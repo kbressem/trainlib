@@ -200,7 +200,10 @@ class DebugHandler:
 
 
 class EnsureTensor:
-    """Ensures labes are always a Tensor and avoid errors from conversion to other classes"""
+    """In ClassificationTrainer labels are converted from torch.Tensor -> int.
+    This leads to multiple downstream problems. This handler is a (temporary) workaround,
+    that forces labels to always be torch.Tensor.
+    """
 
     def attach(self, engine: ignite.engine.Engine) -> None:
         """
