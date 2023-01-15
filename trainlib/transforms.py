@@ -6,7 +6,7 @@ import munch
 from monai.transforms import Compose
 from monai.utils.enums import CommonKeys
 
-from trainlib.utils import import_patched
+from trainlib.utils import get_n_classes_of_model_from_config, import_patched
 
 
 def _concat_image_and_maybe_label(config: munch.Munch) -> List[Callable]:
@@ -133,12 +133,7 @@ def get_post_transforms(config: munch.Munch):
 
     tfms = [get_transform("EnsureTyped", config=config, keys=[CommonKeys.PRED, CommonKeys.LABEL])]
 
-    model_name = list(config.model.keys())[0]
-    model_dict = config.model[model_name]
-
-    for n in ["out_channels", "num_classes"]:
-        if n in model_dict.keys():
-            num_classes = model_dict[n]
+    n_classes = get_n_classes_of_model_from_config(config)
 
     tfms += [
         get_transform(
@@ -146,8 +141,8 @@ def get_post_transforms(config: munch.Munch):
             config=config,
             keys=[CommonKeys.PRED, CommonKeys.LABEL],
             argmax=[True, False],
-            to_onehot=num_classes,
-            num_classes=num_classes,
+            to_onehot=n_classes,
+            num_classes=n_classes,
         ),
     ]
 

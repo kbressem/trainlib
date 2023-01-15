@@ -9,6 +9,8 @@ import torch
 import yaml
 from monai.utils.type_conversion import convert_to_tensor
 
+from trainlib.utils import get_n_classes_of_model_from_config
+
 logger = logging.getLogger(__name__)
 
 
@@ -79,14 +81,11 @@ class PushnotificationHandler:
         metric_names = list(engine.state.metrics.keys())
 
         key_metric = engine.state.metrics[metric_names[0]]
-        if key_metric > self.key_metric:
-            self.improvement = True
-            self.key_metric = key_metric
-        else:
-            self.improvement = False
+        self.improvement = key_metric > self.key_metric
+        self.key_metric = max(key_metric, self.key_metric)
 
         for mn in metric_names:
-            message += f"{mn}: {engine.state.metrics[mn]}\n"
+            message += f"{mn}: {engine.state.metrics[mn]:.5f}\n"
         return message
 
     def start_training(self, engine: ignite.engine.Engine) -> None:
@@ -162,11 +161,15 @@ class DebugHandler:
         self.logger.info(message + "\n")
 
     def check_loss_and_n_classes(self, engine: ignite.engine.Engine):
-        try:
-            model_name = list(self.config.model.keys())[0]
-            n_classes = self.config.model[model_name].out_channels
-        except AttributeError:
-            self.logger.info("`out_channels` not in config.model " "Cannot check if model output fits to loss function")
+
+        n_classes = get_n_classes_of_model_from_config(self.config)
+
+        if n_classes is None:
+            self.logger.info(
+                "Cannot derive number of classes from model. "
+                "Therefore cannot check if model output fits to loss function"
+            )
+            return
         labels = convert_to_tensor(engine.state.batch["label"])  # type: ignore
         unique = torch.unique(labels)
         if len(unique) > n_classes:
@@ -177,7 +180,7 @@ class DebugHandler:
         if max(unique) > n_classes:
             self.logger.error(
                 "The maximum value of labels is higher than `out_channels`. "
-                "This will lead to issues with one-hot conversion. "
+                "This will lead to issues with one-hot conversion and/or your loss function. "
                 f"Found max value of {max(unique)} but expected {n_classes}"
             )
 

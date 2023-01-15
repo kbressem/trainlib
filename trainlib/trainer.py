@@ -90,7 +90,7 @@ def get_val_handlers(network: torch.nn.Module, config: munch.Munch) -> List:
     Returns:
         a list of default handlers for validation: [
             StatsHandler:
-                ???
+                Saves metrics to engine state
             TensorBoardStatsHandler:
                 Save loss from validation to `config.log_dir`, allow logging with TensorBoard
             CheckpointSaver:
@@ -213,7 +213,7 @@ def get_evaluator(
         }
     else:
         raise NotImplementedError(
-            f"task {config.task} not implemented. Supported tasks are `classification`, `segmentation`"
+            f"task {config.task} not implemented. Supported tasks are `classification` and `segmentation`"
         )
 
     evaluator = monai.engines.SupervisedEvaluator(
@@ -280,18 +280,22 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
             self._add_progress_bars()
 
         self.schedulers: List = []
-        # add different metrics dynamically
 
-        if metrics is not None:
-            for m in metrics:
-                m.attach(self.evaluator, m.__class__.__name__)
-
+        # add metrics dynamically
+        if metrics is None:
+            metrics = self._default_metrics(config)
+        for m in metrics:
+            m.attach(self.evaluator, m.__class__.__name__)
         self._add_metrics_logger()
+
         # add eval loss to metrics
         self._add_eval_loss()
 
         if save_latest_metrics:
             self._add_metrics_saver()
+
+    def _default_metrics(self, config: munch.Munch) -> List[IgniteMetric]:
+        raise NotImplementedError("`_default_metrics` should be implemented by subclass.")
 
     def _prepare_dirs(self) -> None:
         """Set up directories for saving logs, outputs and configs of current training session"""
@@ -501,9 +505,6 @@ class SegmentationTrainer(BaseTrainer):
         save_latest_metrics: bool = True,
     ):
 
-        if metrics is None:
-            metrics = self._default_metrics(config)
-
         super().__init__(
             config=config,
             progress_bar=progress_bar,
@@ -591,9 +592,6 @@ class ClassificationTrainer(BaseTrainer):
         metrics: Union[List[IgniteMetric], Tuple[IgniteMetric, ...], None] = None,
         save_latest_metrics: bool = True,
     ):
-
-        if metrics is None:
-            metrics = self._default_metrics(config)
 
         super().__init__(
             config=config,
