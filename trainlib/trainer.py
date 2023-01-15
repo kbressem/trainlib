@@ -1,7 +1,7 @@
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import ignite
 import monai
@@ -11,22 +11,27 @@ import yaml
 from codecarbon import EmissionsTracker
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from monai.handlers import (
+    ROCAUC,
     CheckpointSaver,
+    ConfusionMatrix,
     EarlyStopHandler,
+    HausdorffDistance,
     MeanDice,
     MetricLogger,
     MetricsSaver,
     StatsHandler,
+    SurfaceDistance,
     TensorBoardImageHandler,
     TensorBoardStatsHandler,
     ValidationHandler,
     from_engine,
 )
+from monai.handlers.ignite_metric import IgniteMetric
 from monai.transforms import SaveImage
 from monai.utils import convert_to_numpy
 
-from trainlib.data import segmentation_dataloaders
-from trainlib.handlers import DebugHandler, PushnotificationHandler
+from trainlib.data import dataloaders
+from trainlib.handlers import DebugHandler, EnsureTensor, PushnotificationHandler
 from trainlib.loss import get_loss
 from trainlib.model import get_model
 from trainlib.optimizer import get_optimizer
@@ -51,7 +56,7 @@ def loss_logger(engine):
 
 def metric_logger(engine):
     """Write `metrics` after each epoch to file"""
-    if engine.state.epoch > 1:  # only key metric is calcualted in 1st epoch, needs fix
+    if engine.state.epoch > 1:  # only key metric is calculated in 1st epoch, needs fix
         metric_names = list(engine.state.metrics.keys())
         metrics = [str(engine.state.metrics[mn]) for mn in metric_names]
         log_file = Path(engine.config.log_dir) / "metric_logs.csv"
@@ -85,7 +90,7 @@ def get_val_handlers(network: torch.nn.Module, config: munch.Munch) -> List:
     Returns:
         a list of default handlers for validation: [
             StatsHandler:
-                ???
+                Saves metrics to engine state
             TensorBoardStatsHandler:
                 Save loss from validation to `config.log_dir`, allow logging with TensorBoard
             CheckpointSaver:
@@ -121,6 +126,7 @@ def get_val_handlers(network: torch.nn.Module, config: munch.Munch) -> List:
         ),
         PushnotificationHandler(config=config),
         DebugHandler(config=config),
+        EnsureTensor(),
     ]
 
     return val_handlers
@@ -187,18 +193,35 @@ def get_evaluator(
     if callable(val_handlers):
         val_handlers = val_handlers()
 
-    evaluator = monai.engines.SupervisedEvaluator(
-        device=device,
-        val_data_loader=val_data_loader,
-        network=network,
-        inferer=monai.inferers.SlidingWindowInferer(roi_size=(96,) * config.ndim, sw_batch_size=2, overlap=0.25),
-        # postprocessing=val_post_transforms,
-        key_val_metric={
+    if config.task == "segmentation":
+        inferer: monai.inferers.Inferer = monai.inferers.SlidingWindowInferer(
+            roi_size=(96,) * config.ndim, sw_batch_size=2, overlap=0.25
+        )
+        key_val_metric: Dict[str, Any] = {
             "val_mean_dice": MeanDice(
                 include_background=False,
                 output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
             )
-        },
+        }
+    elif config.task == "classification":
+        inferer = monai.inferers.SimpleInferer()
+        key_val_metric = {
+            "val_mean_auroc": ROCAUC(
+                average="weighted",
+                output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+            )
+        }
+    else:
+        raise NotImplementedError(
+            f"task {config.task} not implemented. Supported tasks are `classification` and `segmentation`"
+        )
+
+    evaluator = monai.engines.SupervisedEvaluator(
+        device=device,
+        val_data_loader=val_data_loader,
+        network=network,
+        inferer=inferer,
+        key_val_metric=key_val_metric,
         val_handlers=val_handlers,  # type: ignore
         # if no FP16 support in GPU or PyTorch version < 1.6, will not enable AMP evaluation
         amp=USE_AMP and config.device != torch.device("cpu"),
@@ -208,15 +231,13 @@ def get_evaluator(
     return evaluator
 
 
-class SegmentationTrainer(monai.engines.SupervisedTrainer):
-    """Default Trainer für supervised segmentation task"""
-
+class BaseTrainer(monai.engines.SupervisedTrainer):
     def __init__(
         self,
         config: munch.Munch,
         progress_bar: bool = True,
         early_stopping: bool = True,
-        metrics: Union[List, Tuple[str, ...]] = ("MeanDice", "HausdorffDistance", "SurfaceDistance"),
+        metrics: Union[List[IgniteMetric], Tuple[IgniteMetric, ...], None] = None,
         save_latest_metrics: bool = True,
     ):
         self.config = config
@@ -224,13 +245,14 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self._backup_library_and_configuration()
         self.config.device = torch.device(self.config.device)
 
-        train_loader, val_loader = segmentation_dataloaders(config=config, train=True, valid=True, test=False)
-
         network = get_model(config).to(config.device)
         optimizer = get_optimizer(network, config)
         loss_fn = get_loss(config)
         val_post_transforms = get_post_transforms(config=config)
         val_handlers = get_val_handlers(network, config=config)
+
+        train_loader, val_loader = dataloaders(config=config, train=True, valid=True, test=False)
+
         self.evaluator = get_evaluator(
             config=config,
             device=config.device,
@@ -258,21 +280,22 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             self._add_progress_bars()
 
         self.schedulers: List = []
-        # add different metrics dynamically
-        for m in metrics:
-            getattr(monai.handlers, m)(
-                include_background=False,
-                reduction="mean",
-                output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
-                # from_engine(["pred", "label"]),
-            ).attach(self.evaluator, m)
 
+        # add metrics dynamically
+        if metrics is None:
+            metrics = self._default_metrics(config)
+        for m in metrics:
+            m.attach(self.evaluator, m.__class__.__name__)
         self._add_metrics_logger()
+
         # add eval loss to metrics
         self._add_eval_loss()
 
         if save_latest_metrics:
             self._add_metrics_saver()
+
+    def _default_metrics(self, config: munch.Munch) -> List[IgniteMetric]:
+        raise NotImplementedError("`_default_metrics` should be implemented by subclass.")
 
     def _prepare_dirs(self) -> None:
         """Set up directories for saving logs, outputs and configs of current training session"""
@@ -353,14 +376,20 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         )
         metric_saver.attach(self.evaluator)
 
+    def _output_transform(self, output: List) -> Tuple:
+        pred = output[0]["pred"].unsqueeze(0)
+        label = output[0]["label"]
+        if self.config.task == "segmentation":
+            label = label.unsqueeze(0)
+        elif self.config.task == "classification":
+            if isinstance(label, int):
+                label = [label]
+            label = torch.tensor(label).long()
+        return (pred, label)
+
     def _add_eval_loss(self) -> None:
-        eval_loss_handler = ignite.metrics.Loss(
-            loss_fn=self.loss_function,
-            output_transform=lambda output: (
-                output[0]["pred"].unsqueeze(0),  # add batch dim
-                output[0]["label"].unsqueeze(0),  # add batch dim
-            ),
-        )
+
+        eval_loss_handler = ignite.metrics.Loss(loss_fn=self.loss_function, output_transform=self._output_transform)
         eval_loss_handler.attach(self.evaluator, "eval_loss")
 
     def _get_meta_dict(self, batch) -> list:
@@ -463,6 +492,37 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         self.evaluator.run()
         print(f"metrics saved to {self.config.out_dir}")
 
+
+class SegmentationTrainer(BaseTrainer):
+    """Default Trainer für supervised segmentation task"""
+
+    def __init__(
+        self,
+        config: munch.Munch,
+        progress_bar: bool = True,
+        early_stopping: bool = True,
+        metrics: Union[List[IgniteMetric], Tuple[IgniteMetric, ...], None] = None,
+        save_latest_metrics: bool = True,
+    ):
+
+        super().__init__(
+            config=config,
+            progress_bar=progress_bar,
+            early_stopping=early_stopping,
+            metrics=metrics,
+            save_latest_metrics=save_latest_metrics,
+        )
+
+    def _default_metrics(self, config: munch.Munch) -> List[IgniteMetric]:
+        val_post_transforms = get_post_transforms(config=config)
+        metric_args = {
+            "include_background": False,
+            "reduction": "mean",
+            "output_transform": lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+        }
+        metrics = [m(**metric_args) for m in [MeanDice, HausdorffDistance, SurfaceDistance]]
+        return metrics
+
     def predict(
         self,
         file: Union[str, List[str]],
@@ -475,7 +535,7 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
         """Predict on single image or sequence from a single examination"""
         if checkpoint:
             self.load_checkpoint(checkpoint)
-        dataloader = segmentation_dataloaders(self.config, train=False, valid=False, test=True)
+        dataloader = dataloaders(self.config, train=False, valid=False, test=True)
         if isinstance(file, str):
             file = [file]
         images = {col_name: f for col_name, f in zip(self.config.data.image_cols, file)}
@@ -519,3 +579,50 @@ class SegmentationTrainer(monai.engines.SupervisedTrainer):
             separate_folder=False,
         )
         prediction = writer(prediction, meta_dict)
+
+
+class ClassificationTrainer(BaseTrainer):
+    """Default Trainer for supervised classification tasks"""
+
+    def __init__(
+        self,
+        config: munch.Munch,
+        progress_bar: bool = True,
+        early_stopping: bool = True,
+        metrics: Union[List[IgniteMetric], Tuple[IgniteMetric, ...], None] = None,
+        save_latest_metrics: bool = True,
+    ):
+
+        super().__init__(
+            config=config,
+            progress_bar=progress_bar,
+            early_stopping=early_stopping,
+            metrics=metrics,
+            save_latest_metrics=save_latest_metrics,
+        )
+
+    def _default_metrics(self, config: munch.Munch) -> List[IgniteMetric]:
+        val_post_transforms = get_post_transforms(config=config)
+        rocauc = ROCAUC(
+            average="weighted", output_transform=lambda x: from_engine(["pred", "label"])(val_post_transforms(x))
+        )
+        metrics = [rocauc]
+
+        cm_args: Dict[str, Any] = {
+            "include_background": False,
+            "reduction": "mean",
+            "output_transform": lambda x: from_engine(["pred", "label"])(val_post_transforms(x)),
+        }
+        for metric_name in [
+            "sensitivity",
+            "specificity",
+            "precision",
+            "accuracy",
+            "balanced accuracy",
+            "f1 score",
+            "matthews correlation coefficient",
+        ]:
+            cm_args["metric_name"] = metric_name
+            metrics.append(ConfusionMatrix(**cm_args))
+
+        return metrics

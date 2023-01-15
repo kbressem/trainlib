@@ -50,7 +50,7 @@ def _default_image_transform_2d(image: torch.Tensor) -> torch.Tensor:
 def _resolve_if_exists(
     data_dir: Path, filename: Union[str, Path], warn_if_nonexistent: bool = False
 ) -> Union[str, Path]:
-    full_fn = data_dir / filename
+    full_fn = data_dir / str(filename)
     if full_fn.exists():
         return full_fn
     elif warn_if_nonexistent:
@@ -63,6 +63,10 @@ class DataLoader(MonaiDataLoader):
 
     logger = logger
     start: int = 0  # first item for `show_batch`
+
+    def __init__(self, dataset, num_workers, task, **kwargs):
+        super().__init__(dataset, num_workers, **kwargs)
+        self.task = task
 
     def show_batch(
         self,
@@ -83,6 +87,7 @@ class DataLoader(MonaiDataLoader):
         mode: If `mode = 'RGB'` channel-dim will be treated as colors. Otherwise each channels is
             displayed individually.
         """
+
         # mypy does not recognize that data/transforms are in dataset
         n_items: int = self.dataset.data.__len__()  # type: ignore
         batch_size: int = self.batch_size  # type: ignore
@@ -127,7 +132,7 @@ class DataLoader(MonaiDataLoader):
             **kwargs,
         ).show()
 
-    def sanity_check(self, task: str = "segmentation", sample_size: Optional[int] = None) -> None:
+    def sanity_check(self, sample_size: Optional[int] = None) -> None:
         """Iterate through the dataset and check if transforms are applied without error
         and if the shape and format of the data is correct.
 
@@ -141,10 +146,10 @@ class DataLoader(MonaiDataLoader):
         if sample_size:
             data = data[:sample_size]
 
-        if task == "segmentation":
+        if self.task == "segmentation":
             self._sanity_check_segmentation(data, transforms)
         else:
-            raise NotImplementedError(f"{task} is not yet implemented")
+            raise NotImplementedError(f"{self.task} is not yet implemented")
 
     def _sanity_check_segmentation(self, data: dict, transforms: Compose) -> None:
 
@@ -180,7 +185,7 @@ class DataLoader(MonaiDataLoader):
             self.logger.info(f"Value {value} appears in {unique_labels.count(value)} items in the dataset")
 
 
-def segmentation_dataloaders(
+def dataloaders(
     config: munch.Munch,
     train: Optional[bool] = None,
     valid: Optional[bool] = None,
@@ -259,7 +264,7 @@ def segmentation_dataloaders(
             ]
 
     # Dataframes should now be converted to a dict
-    # The data_dict looks like this:
+    # For a segmentation problem, the data_dict would look like this:
     # [
     #  {'image_col_1': 'data_dir/path/to/image1',
     #   'image_col_2': 'data_dir/path/to/image2'
@@ -293,21 +298,18 @@ def segmentation_dataloaders(
     if train:
         train_ds = Dataset(data=train_files, transform=train_transforms)
         train_loader = DataLoader(
-            train_ds,
-            batch_size=batch_size,
-            num_workers=num_workers(),
-            shuffle=True,
+            train_ds, batch_size=batch_size, num_workers=num_workers(), shuffle=True, task=config.task
         )
         data_loaders.append(train_loader)
 
     if valid:
         val_ds = Dataset(data=val_files, transform=val_transforms)
-        val_loader = DataLoader(val_ds, batch_size=1, num_workers=num_workers(), shuffle=False)
+        val_loader = DataLoader(val_ds, batch_size=1, num_workers=num_workers(), shuffle=False, task=config.task)
         data_loaders.append(val_loader)
 
     if test:
         test_ds = Dataset(data=test_files, transform=test_transforms)
-        test_loader = DataLoader(test_ds, batch_size=1, num_workers=num_workers(), shuffle=False)
+        test_loader = DataLoader(test_ds, batch_size=1, num_workers=num_workers(), shuffle=False, task=config.task)
         data_loaders.append(test_loader)
 
     # if only one dataloader is constructed, return only this dataloader else return a named tuple

@@ -86,7 +86,7 @@ def import_patched(path: Union[str, Path], name: str) -> Callable:
     E.g., if one wants to change the model, instead of editing trainlib/model.py,
     one can provide a path to another model in the config at: config.patch.model
     `trainlib` will then try to first import from the given patched model and, if this
-    failes, fall back to import from trainlib/model.py.
+    fails, fall back to import from trainlib/model.py.
 
     Args:
         path: Path to python script, containing the patched functionality.
@@ -106,3 +106,16 @@ class ShapeMissmatchError(Exception):
     def __init__(self, a, b):
         message = f"Shapes of x {a.shape} and y {b.shape} do not match."
         super().__init__(message)
+
+
+def get_n_classes_of_model_from_config(config: munch.Munch) -> int:
+    model_name = list(config.model.keys())[0]
+    model_dict = config.model[model_name]
+    n_classes = model_dict.get("out_channels") or model_dict.get("num_classes")
+    if n_classes:
+        return n_classes
+    else:
+        raise AttributeError(
+            "Model dict has no attribute `out_channels` or `num_classes`. "
+            "Cannot derive number of classes from model dict"
+        )

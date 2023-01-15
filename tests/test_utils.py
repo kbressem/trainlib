@@ -13,6 +13,7 @@ def mock_one_epoch(engine, batch):
 
 
 TEST_CONFIG_SEGM = load_config(Path(__file__).parent / "test_config_segm.yaml")
+TEST_CONFIG_CLF = load_config(Path(__file__).parent / "test_config_clf.yaml")
 TEST_ENGINE = ignite.engine.Engine(mock_one_epoch)
 TEST_IMAGE = torch.randn(1, 1, 3, 3, 3)
 TEST_LABEL = torch.stack(

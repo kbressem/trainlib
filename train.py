@@ -58,7 +58,6 @@ if __name__ == "__main__":
     trainer = SegmentationTrainer(
         progress_bar=True,
         early_stopping=True,
-        metrics=["MeanDice", "HausdorffDistance", "SurfaceDistance"],
         save_latest_metrics=True,
         config=config,
     )

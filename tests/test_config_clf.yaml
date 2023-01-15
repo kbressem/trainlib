@@ -1,3 +1,4 @@
+task: classification
 data:
   data_dir: ../data/
   train_csv: ../data/test_data_train_3d_clf.csv
@@ -48,8 +49,10 @@ transforms:
     EnsureChannelFirstd:
       keys: image
       allow_missing_keys: true
+    ToTensord:
+      keys: label
     Spacingd:
-      keyss: image
+      keys: image
       pixdim: [2, 2, 2]
       mode: bilinear
   prob: 0.1
