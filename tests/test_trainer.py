@@ -107,7 +107,6 @@ class TestClassificationTrainer2d(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
         shutil.rmtree(self.config.model_dir, ignore_errors=True)
-        shutil.rmtree(self.config.data.cache_dir, ignore_errors=True)
         super().tearDown()
 
     def test_one_epoch(self):
