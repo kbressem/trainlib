@@ -4,7 +4,7 @@ import multiprocessing
 import resource
 import sys
 from pathlib import Path
-from typing import Callable, Union
+from typing import Any, Callable, Dict, List, Sequence, Union
 
 import monai
 import munch
@@ -15,6 +15,23 @@ import yaml
 logger = logging.getLogger(__name__)
 
 USE_AMP = monai.utils.get_torch_version_tuple() >= (1, 6)  # type: ignore
+
+
+def _infer_input_size_from_transforms(config) -> Sequence[int]:
+    """Tries to extract the input size from base or train transforms.
+    If multiple resizing steps are done in the transform pipeline, the last
+    step will be used. If not resizing is performed, a size of 96px is used as defaults value.
+    """
+    spatial_sizes: List[Sequence[int]]
+    transforms: Dict[str, Dict[str, Any]] = {}
+    # Iterate through all arguments given to transforms in the config to check if one specifies a size. T
+    # The size specified the furthest down in the pipeline is used.
+    for tfm_dict in [config.transforms.get("base"), config.transforms.get("train")]:
+        if tfm_dict:
+            transforms = {**transforms, **tfm_dict}
+    spatial_sizes = [v for value in transforms.values() for k, v in value.items() if k == "spatial_size"]
+    size: Sequence[int] = spatial_sizes[-1] if spatial_sizes else [96] * config.ndim
+    return size
 
 
 def load_config(fn: Union[Path, str] = "config.yaml") -> munch.Munch:
@@ -39,6 +56,7 @@ def load_config(fn: Union[Path, str] = "config.yaml") -> munch.Munch:
     if not isinstance(config.data.label_cols, (tuple, list)):
         config.data.label_cols = [config.data.label_cols]
 
+    config.input_size = _infer_input_size_from_transforms(config=config)
     config.transforms.mode = ("bilinear",) * len(config.data.image_cols) + ("nearest",) * len(config.data.label_cols)
     return config
 

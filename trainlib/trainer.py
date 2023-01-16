@@ -150,7 +150,7 @@ def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: mun
     """
 
     train_handlers = [
-        ValidationHandler(validator=evaluator, interval=1, epoch_level=True),
+        ValidationHandler(validator=evaluator, interval=config.get("validation_interval") or 1, epoch_level=True),
         StatsHandler(tag_name="train_loss", output_transform=from_engine(["loss"], first=True)),
         StatsHandler(tag_name="loss_logger", iteration_print_logger=loss_logger),
         TensorBoardStatsHandler(
@@ -195,7 +195,7 @@ def get_evaluator(
 
     if config.task == "segmentation":
         inferer: monai.inferers.Inferer = monai.inferers.SlidingWindowInferer(
-            roi_size=(96,) * config.ndim, sw_batch_size=2, overlap=0.25
+            roi_size=config.input_size, sw_batch_size=2, overlap=0.25
         )
         key_val_metric: Dict[str, Any] = {
             "val_mean_dice": MeanDice(
@@ -395,9 +395,8 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
     def _get_meta_dict(self, batch) -> list:
         """Get dict of metadata from engine. Needed as `batch_transform`"""
         image_cols = self.config.data.image_cols
-        image_name = image_cols[0] if isinstance(image_cols, list) else image_cols
-        key = f"{image_name}_meta_dict"
-        return [item[key] for item in batch]
+        key = image_cols[0] if isinstance(image_cols, list) else image_cols
+        return [item[key].meta for item in batch]
 
     def load_checkpoint(self, checkpoint: Optional[Union[Path, str]] = None):
         if not checkpoint:
@@ -531,17 +530,22 @@ class SegmentationTrainer(BaseTrainer):
         sw_batch_size=16,
         overlap=0.75,
         return_input=True,
+        progress: bool = False,
+        **kwargs,
     ):
         """Predict on single image or sequence from a single examination"""
         if checkpoint:
             self.load_checkpoint(checkpoint)
-        dataloader = dataloaders(self.config, train=False, valid=False, test=True)
+        self.network.eval()
+        inferer = monai.inferers.SlidingWindowInferer(
+            roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap, progress=progress, **kwargs
+        )
         if isinstance(file, str):
             file = [file]
         images = {col_name: f for col_name, f in zip(self.config.data.image_cols, file)}
+        dataloader = dataloaders(self.config, train=False, valid=False, test=True)
         dataloader.dataset.data = [images]
-        inferer = monai.inferers.SlidingWindowInferer(roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap)
-        self.network.eval()
+
         with torch.no_grad():
             for batch in dataloader:
                 data = batch["image"].to(self.config.device)
