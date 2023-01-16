@@ -12,6 +12,7 @@ import pandas as pd
 import torch
 from monai.data import DataLoader as MonaiDataLoader
 from monai.transforms import Compose
+from monai.utils import ensure_tuple
 from tqdm import tqdm
 
 from trainlib import transforms
@@ -56,6 +57,11 @@ def _resolve_if_exists(
     elif warn_if_nonexistent:
         logger.warning(f"{str(full_fn)} does not exist")
     return filename
+
+
+def _resolve_column(df, col_name, data_dir, warn_if_nonexistent):
+    df[col_name] = [_resolve_if_exists(data_dir, fn, warn_if_nonexistent) for fn in df[col_name]]
+    return df
 
 
 class DataLoader(MonaiDataLoader):
@@ -213,20 +219,15 @@ def dataloaders(
             test_loader: DataLoader (optional, if test==True)
     """
 
-    # parse needed rguments from config
-    if train is None:
-        train = config.data.train
-    if valid is None:
-        valid = config.data.valid
-    if test is None:
-        test = config.data.test
-
+    # parse needed arguments from config
+    splits = {"train": train or config.data.train, "valid": config.data.valid, "test": test or config.data.test}
     data_dir = config.data.data_dir
-    train_csv = config.data.train_csv
-    valid_csv = config.data.valid_csv
-    test_csv = config.data.test_csv
-    image_cols = config.data.image_cols
-    label_cols = config.data.label_cols
+    csv_names = [config.data.get(f"{key}_csv") for key, value in splits.items() if value]
+    if not csv_names:
+        raise ValueError("No dataset type is specified (train, valid or test)")
+
+    image_cols = ensure_tuple(config.data.image_cols)
+    label_cols = ensure_tuple(config.data.label_cols)
     batch_size = config.data.batch_size
     debug = config.debug
 
@@ -236,32 +237,15 @@ def dataloaders(
     # the relevant columns. Then the rows are iterated, converting each row
     # into an individual dict, as expected by monai
 
-    if not isinstance(image_cols, (tuple, list)):
-        image_cols = [image_cols]
-    if not isinstance(label_cols, (tuple, list)):
-        label_cols = [label_cols]
-    train_df = pd.read_csv(train_csv)
-    valid_df = pd.read_csv(valid_csv)
-    test_df = pd.read_csv(test_csv)
+    data_frames = [pd.read_csv(fn) for fn in csv_names]
 
     if debug:
-        train_df = train_df.sample(10)
-        valid_df = valid_df.sample(5)
+        data_frames = [df.sample(5) for df in data_frames]
 
     for col in image_cols + label_cols:
         # create absolute file name from relative fn in df and data_dir
-        if train:
-            train_df[col] = [
-                _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in train_df[col]
-            ]
-        if valid:
-            valid_df[col] = [
-                _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in valid_df[col]
-            ]
-        if test:
-            test_df[col] = [
-                _resolve_if_exists(data_dir, fn, warn_if_nonexistent=col in image_cols) for fn in test_df[col]
-            ]
+        warn_if_nonexistent = col in image_cols or config.task == "segmentation"
+        data_frames = [_resolve_column(df, col, data_dir, warn_if_nonexistent) for df in data_frames]
 
     # Dataframes should now be converted to a dict
     # For a segmentation problem, the data_dict would look like this:
@@ -276,41 +260,21 @@ def dataloaders(
     # Filename should now be absolute or relative to working directory
 
     # now we create separate data dicts for train, valid and test data respectively
-    assert train or test or valid, "No dataset type is specified (train/valid or test)"
-    if test:
-        test_files = test_df.to_dict("records")
-    if valid:
-        val_files = valid_df.to_dict("records")
-    if train:
-        train_files = train_df.to_dict("records")
+    data_dicts = [df.to_dict("records") for df in data_frames]
 
     # transforms are specified in transforms.py and are just loaded here
-    if train:
-        train_transforms = transforms.get_train_transforms(config)
-    if valid:
-        val_transforms = transforms.get_val_transforms(config)
-    if test:
-        test_transforms = transforms.get_test_transforms(config)
+    data_transforms = [getattr(transforms, f"get_{key}_transforms")(config) for key, value in splits.items() if value]
 
     # ---------- construct dataloaders ----------
     Dataset = import_dataset(config)  # noqa N806
     data_loaders = []
-    if train:
-        train_ds = Dataset(data=train_files, transform=train_transforms)
-        train_loader = DataLoader(
-            train_ds, batch_size=batch_size, num_workers=num_workers(), shuffle=True, task=config.task
+
+    for data_dict, transform in zip(data_dicts, data_transforms):
+        data_set = Dataset(data=data_dict, transform=transform)
+        data_loader = DataLoader(
+            data_set, batch_size=batch_size, num_workers=num_workers(), shuffle=True, task=config.task
         )
-        data_loaders.append(train_loader)
-
-    if valid:
-        val_ds = Dataset(data=val_files, transform=val_transforms)
-        val_loader = DataLoader(val_ds, batch_size=1, num_workers=num_workers(), shuffle=False, task=config.task)
-        data_loaders.append(val_loader)
-
-    if test:
-        test_ds = Dataset(data=test_files, transform=test_transforms)
-        test_loader = DataLoader(test_ds, batch_size=1, num_workers=num_workers(), shuffle=False, task=config.task)
-        data_loaders.append(test_loader)
+        data_loaders.append(data_loader)
 
     # if only one dataloader is constructed, return only this dataloader else return a named tuple
     # with dataloaders, so it is clear which DataLoader is train/valid or test
@@ -322,6 +286,6 @@ def dataloaders(
             "DataLoaders",
             # create str with specification of loader type if train and test are true but
             # valid is false string will be 'train test'
-            " ".join(["train" if train else "", "valid" if valid else "", "test" if test else ""]).strip(),
+            [key for key, value in splits.items() if value],
         )
         return DataLoaders(*data_loaders)

@@ -99,7 +99,7 @@ def get_train_transforms(config: munch.Munch) -> Compose:
     return Compose(tfms)
 
 
-def get_val_transforms(config: munch.Munch) -> Compose:
+def get_valid_transforms(config: munch.Munch) -> Compose:
     """Transforms applied only to the valid dataset"""
     tfms = get_base_transforms(config=config)
     tfms += [
