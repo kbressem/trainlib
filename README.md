@@ -72,10 +72,10 @@ This way, the results can be reproduced later on, even if the library did change
 - [x] add val loss (tqdm and ~~loss logs~~)
 - [x] add CO2 estimation (https://github.com/mlco2/codecarbon#quickstart-)
 - [ ] add final classification report
-- [ ] Rewrite trainer.py to --> base trainer and subclasses segmentation trainer and classification trainer
-- [ ] add support for 2d segmentation
-- [ ] add support for 3d classification
-- [ ] add support for 2d classification
+- [x] Rewrite trainer.py to --> base trainer and subclasses segmentation trainer and classification trainer
+- [x] add support for 2d segmentation
+- [x] add support for 3d classification
+- [x] add support for 2d classification
 - [ ] add project set-up (create folders for data/notebooks/patch, ci.yaml, Makefile etc. by running a single terminal command)
 - [ ] switch from setup.py to .toml
 
