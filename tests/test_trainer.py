@@ -72,6 +72,7 @@ class TestSegmentationTrainer2d(unittest.TestCase):
     config.data.test_csv = "../data/test_data_valid_2d_segm.csv"
     config.ndim = 2
     config.data.dataset_type = "iterative"
+    config.input_size = [96, 96]
 
     def tearDown(self) -> None:
         shutil.rmtree(self.config.run_id.split("/")[0], ignore_errors=True)
