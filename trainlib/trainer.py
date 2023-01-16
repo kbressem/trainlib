@@ -282,8 +282,7 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
         self.schedulers: List = []
 
         # add metrics dynamically
-        if metrics is None:
-            metrics = self._default_metrics(config)
+        metrics = metrics or self._default_metrics(config)
         for m in metrics:
             m.attach(self.evaluator, m.__class__.__name__)
         self._add_metrics_logger()
@@ -382,8 +381,6 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
         if self.config.task == "segmentation":
             label = label.unsqueeze(0)
         elif self.config.task == "classification":
-            if isinstance(label, int):
-                label = [label]
             label = torch.tensor(label).long()
         return (pred, label)
 
@@ -426,7 +423,7 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
                 pass  # train from scratch
 
         # train the model
-        with EmissionsTracker(output_dir=self.config.out_dir, log_level="warning") as tracker:  # noqa F841
+        with EmissionsTracker(output_dir=self.config.out_dir, log_level="warning") as _:
             super().run()
         # make metrics and losses more accessible
         self.loss = {
@@ -526,7 +523,7 @@ class SegmentationTrainer(BaseTrainer):
         self,
         file: Union[str, List[str]],
         checkpoint=None,
-        roi_size: Tuple[int, int, int] = (96, 96, 96),
+        roi_size: Optional[Tuple[int, ...]] = None,
         sw_batch_size=16,
         overlap=0.75,
         return_input=True,
@@ -538,7 +535,11 @@ class SegmentationTrainer(BaseTrainer):
             self.load_checkpoint(checkpoint)
         self.network.eval()
         inferer = monai.inferers.SlidingWindowInferer(
-            roi_size=roi_size, sw_batch_size=sw_batch_size, overlap=overlap, progress=progress, **kwargs
+            roi_size=roi_size or self.config.input_size,
+            sw_batch_size=sw_batch_size,
+            overlap=overlap,
+            progress=progress,
+            **kwargs,
         )
         if isinstance(file, str):
             file = [file]
