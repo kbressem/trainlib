@@ -1,7 +1,7 @@
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import ignite
 import monai
@@ -28,7 +28,8 @@ from monai.handlers import (
 )
 from monai.handlers.ignite_metric import IgniteMetric
 from monai.transforms import SaveImage
-from monai.utils import convert_to_numpy
+from monai.utils import convert_to_numpy, convert_to_tensor
+from monai.utils.enums import CommonKeys
 
 from trainlib.data import dataloaders
 from trainlib.handlers import DebugHandler, EnsureTensor, PushnotificationHandler
@@ -130,6 +131,19 @@ def get_val_handlers(network: torch.nn.Module, config: munch.Munch) -> List:
     ]
 
     return val_handlers
+
+
+def _prepare_batch(
+    batchdata: Union[Dict[str, torch.Tensor], torch.Tensor, Sequence[torch.Tensor]],
+    device: Optional[Union[str, torch.device]] = None,
+    non_blocking: bool = False,
+    **kwargs,
+) -> Union[Tuple[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]:
+    """Forces label to be torch.Tensor"""
+    if isinstance(batchdata, dict):
+        if not isinstance(batchdata.get(CommonKeys.LABEL), torch.Tensor):
+            batchdata[CommonKeys.LABEL] = convert_to_tensor(batchdata[CommonKeys.LABEL], device=device)
+    return monai.engines.default_prepare_batch(batchdata, device, non_blocking)
 
 
 def get_train_handlers(evaluator: monai.engines.SupervisedEvaluator, config: munch.Munch) -> List:
@@ -272,6 +286,7 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
             inferer=monai.inferers.SimpleInferer(),
             train_handlers=train_handlers,
             amp=USE_AMP and config.device != torch.device("cpu"),
+            prepare_batch=_prepare_batch,
         )
 
         if early_stopping:

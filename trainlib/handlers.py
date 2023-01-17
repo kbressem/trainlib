@@ -209,9 +209,9 @@ class EnsureTensor:
     that forces labels to always be torch.Tensor.
     """
 
-    def __init__(self, config: munch.Munch) -> None: 
+    def __init__(self, config: munch.Munch) -> None:
         self.config = config
-        
+
     def attach(self, engine: ignite.engine.Engine) -> None:
         """
         Args:
