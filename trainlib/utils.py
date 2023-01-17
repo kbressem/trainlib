@@ -92,7 +92,7 @@ def num_workers() -> int:
             "-4096-ubuntu for more details.\n"
             "Will use torch.multiprocessing.set_sharing_strategy('file_system') as a workarround."
         )
-        n_workers = 16 if n_workers > 16 else n_workers
+        n_workers = min(16, n_workers)
         torch.multiprocessing.set_sharing_strategy("file_system")
 
     return n_workers

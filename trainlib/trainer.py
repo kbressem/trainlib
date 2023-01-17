@@ -126,7 +126,7 @@ def get_val_handlers(network: torch.nn.Module, config: munch.Munch) -> List:
         ),
         PushnotificationHandler(config=config),
         DebugHandler(config=config),
-        EnsureTensor(),
+        EnsureTensor(config=config),
     ]
 
     return val_handlers
@@ -382,6 +382,7 @@ class BaseTrainer(monai.engines.SupervisedTrainer):
             label = label.unsqueeze(0)
         elif self.config.task == "classification":
             label = torch.tensor(label).long()
+            pred = pred.detach()
         return (pred, label)
 
     def _add_eval_loss(self) -> None:

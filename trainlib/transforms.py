@@ -32,6 +32,16 @@ def _concat_image_and_maybe_label(config: munch.Munch) -> List[Callable]:
                 dim=0,
             )
         ]
+    if config.task == "classification":
+        concat_transforms += [
+            get_transform(
+                "CopyItemsd", 
+                config=config, 
+                keys=config.data.label_cols, 
+                times=1, 
+                names=[CommonKeys.LABEL]
+            )
+        ]
     return concat_transforms
 
 
@@ -149,5 +159,15 @@ def get_post_transforms(config: munch.Munch):
     if "postprocessing" in config.transforms.keys():
         tfm_names = list(config.transforms.postprocessing)
         tfms += [get_transform(tn, config) for tn in tfm_names]
+
+    if config.task == "classification": 
+        tfms += [
+            get_transform(
+                "ToDeviced",  # Avoids ROCAUC error when tensor is on device: cuda
+                device="cpu",
+                config=config, 
+                keys=[CommonKeys.PRED, CommonKeys.LABEL]
+            )
+        ]
 
     return Compose(tfms)
