@@ -55,7 +55,7 @@ def _resolve_if_exists(
     if full_fn.exists():
         return full_fn
     elif warn_if_nonexistent:
-        logger.warning(f"{str(full_fn)} does not exist")
+        logger.warn(f"{str(full_fn)} does not exist")
     return filename
 
 
@@ -155,7 +155,7 @@ class DataLoader(MonaiDataLoader):
         if self.task == "segmentation":
             self._sanity_check_segmentation(data, transforms)
         else:
-            raise NotImplementedError(f"{self.task} is not yet implemented")
+            self._sanity_check_classification(data, transforms)
 
     def _sanity_check_segmentation(self, data: dict, transforms: Compose) -> None:
 
@@ -185,6 +185,32 @@ class DataLoader(MonaiDataLoader):
                             f"{label_shape} in file {label_fn}"
                         )
                     unique_labels += item["label"].unique().tolist()
+
+        self.logger.info("Frequency of label values:")
+        for value in set(unique_labels):
+            self.logger.info(f"Value {value} appears in {unique_labels.count(value)} items in the dataset")
+
+    def _sanity_check_classification(self, data: dict, transforms: Compose) -> None:
+
+        unique_labels: list = []
+        for data_dict in tqdm(data):
+            try:
+                out = transforms(data_dict)
+            except Exception as e:
+                self.logger.error(f"Exception: {e} raised")
+                self.logger.error(data_dict)
+            else:
+                if not isinstance(out, list):
+                    out = [out]
+                for item in out:
+                    image_fn = item["image"].meta["filename_or_obj"]
+                    image_shape = item["image"].shape
+                    if max(image_shape) > 1000:
+                        self.logger.warning(
+                            "At least one dimension in your image or lables is very large: "
+                            f"{image_shape} in file {image_fn} "
+                        )
+                    unique_labels.append(item["label"])
 
         self.logger.info("Frequency of label values:")
         for value in set(unique_labels):
