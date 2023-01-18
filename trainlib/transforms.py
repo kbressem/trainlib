@@ -19,7 +19,8 @@ def _concat_image_and_maybe_label(config: munch.Munch) -> List[Callable]:
             keys=config.data.image_cols,
             name=CommonKeys.IMAGE,
             dim=0,
-        )
+        ),
+        get_transform("SelectItemsd", config=config, keys=config.data.label_cols + config.data.image_cols),
     ]
 
     if config.task == "segmentation":
@@ -32,6 +33,13 @@ def _concat_image_and_maybe_label(config: munch.Munch) -> List[Callable]:
                 dim=0,
             )
         ]
+    # TODO: This only works for one label. It would be better if a way is found to also concat these labels
+    # CommonKeys.LABEL should still be used, as the monai.engines also use this internally.
+    if config.task == "classification" and config.data.label_cols[0] != CommonKeys.LABEL:
+        concat_transforms += [
+            get_transform("CopyItemsd", config=config, keys=config.data.label_cols, times=1, names=[CommonKeys.LABEL])
+        ]
+
     return concat_transforms
 
 
@@ -149,5 +157,15 @@ def get_post_transforms(config: munch.Munch):
     if "postprocessing" in config.transforms.keys():
         tfm_names = list(config.transforms.postprocessing)
         tfms += [get_transform(tn, config) for tn in tfm_names]
+
+    if config.task == "classification":
+        tfms += [
+            get_transform(
+                "ToDeviced",  # Avoids ROCAUC error when tensor is on device: cuda
+                device="cpu",
+                config=config,
+                keys=[CommonKeys.PRED, CommonKeys.LABEL],
+            )
+        ]
 
     return Compose(tfms)

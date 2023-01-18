@@ -185,6 +185,7 @@ class DebugHandler:
             )
 
     def _extract_statisics(self, x: torch.Tensor) -> List:
+        x = x.float()
         shape = tuple(x.shape)
         mean = torch.mean(x).item()
         std = torch.std(x).item()
@@ -208,6 +209,9 @@ class EnsureTensor:
     that forces labels to always be torch.Tensor.
     """
 
+    def __init__(self, config: munch.Munch) -> None:
+        self.config = config
+
     def attach(self, engine: ignite.engine.Engine) -> None:
         """
         Args:
@@ -223,10 +227,10 @@ class EnsureTensor:
         if not isinstance(label, torch.Tensor):
             if isinstance(label, int):
                 label = [label]
-            engine.state.output[0]["label"] = torch.tensor(label)  # type: ignore
+            engine.state.output[0]["label"] = torch.tensor(label).to(self.config.device)  # type: ignore
 
         label = engine.state.batch[0]["label"]  # type: ignore
         if not isinstance(label, torch.Tensor):
             if isinstance(label, int):
                 label = [label]
-            engine.state.batch[0]["label"] = torch.tensor(label)  # type: ignore
+            engine.state.batch[0]["label"] = torch.tensor(label).to(self.config.device)  # type: ignore
